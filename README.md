@@ -1,4 +1,4 @@
-# MOCKSTAR
+
 <div align="center">
 
 # 🎙️ AI Mock Interview Platform
