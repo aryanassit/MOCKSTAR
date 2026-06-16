@@ -1,0 +1,12 @@
+# Backend Secrets
+ai-backend/venv/
+ai-backend/.env
+ai-backend/__pycache__/
+*.pyc
+
+# Frontend Secrets
+ai-mock-interview/node_modules/
+ai-mock-interview/.next/
+ai-mock-interview/.env
+ai-mock-interview/.env.local
+
