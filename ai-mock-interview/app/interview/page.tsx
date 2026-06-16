@@ -43,7 +43,7 @@ export default function InterviewRoom() {
           return router.push('/dashboard');
         }
 
-        const response = await fetch('http://localhost:8000/generate-questions', {
+        const response = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL || http://localhost:8000/generate-questions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ resume_url: profileData.resume_url })
@@ -182,7 +182,7 @@ export default function InterviewRoom() {
       const lastVideoUrl = videoUrlsRef.current[videoUrlsRef.current.length - 1];
       const lastQuestion = aiQuestions[aiQuestions.length - 1]; // Grab the question!
       
-      const response = await fetch('http://localhost:8000/analyze-video', {
+      const response = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL || http://localhost:8000/analyze-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
