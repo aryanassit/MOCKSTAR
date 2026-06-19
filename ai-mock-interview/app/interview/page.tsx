@@ -77,6 +77,14 @@ export default function InterviewRoom() {
       if (audioContextRef.current) audioContextRef.current.close();
     };
   }, [router]);
+  useEffect(() => {
+    if (!isInitializing && videoRef.current && activeStreamRef.current) {
+      videoRef.current.srcObject = activeStreamRef.current;
+    }
+  }, [isInitializing]);
+
+  const setupVAD = (stream: MediaStream) => {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
 
   const setupVAD = (stream: MediaStream) => {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
