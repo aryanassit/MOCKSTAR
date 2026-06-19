@@ -43,7 +43,7 @@ export default function InterviewRoom() {
           return router.push('/dashboard');
         }
 
-        const response = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL || http://localhost:8000/generate-questions', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}/generate-questions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ resume_url: profileData.resume_url })
@@ -83,12 +83,11 @@ export default function InterviewRoom() {
     }
   }, [isInitializing]);
 
-  const setupVAD = (stream: MediaStream) => {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
 
   const setupVAD = (stream: MediaStream) => {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     audioContextRef.current = audioContext;
+  }
     const analyser = audioContext.createAnalyser();
     const microphone = audioContext.createMediaStreamSource(stream);
     const scriptProcessor = audioContext.createScriptProcessor(2048, 1, 1);
@@ -190,7 +189,7 @@ export default function InterviewRoom() {
       const lastVideoUrl = videoUrlsRef.current[videoUrlsRef.current.length - 1];
       const lastQuestion = aiQuestions[aiQuestions.length - 1]; // Grab the question!
       
-      const response = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL || http://localhost:8000/analyze-video', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}/analyze-video`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
