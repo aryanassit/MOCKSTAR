@@ -4,29 +4,23 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabaseClient';
 
+interface Question { text: string; score: number }
 interface Session {
-  id: number;
-  role: string;
-  date: string;
-  overall: number;
-  speech: number;
-  eyeContact: number;
-  posture: number;
-  duration: string;
-  feedback: string;
-  questions: { text: string; score: number }[];
+  id: number; role: string; date: string;
+  overall: number; speech: number; eyeContact: number; posture: number;
+  duration: string; feedback: string; questions: Question[];
 }
 
-const MOCK_SESSIONS: Session[] = [
+const MOCK: Session[] = [
   {
     id: 1, role: 'ML Engineer', date: 'Jun 19, 2025', overall: 78,
     speech: 82, eyeContact: 71, posture: 78, duration: '14 min',
     feedback: 'Strong technical depth on FinBERT-LSTM integration. Eye contact dropped during longer answers — practice camera lock during pauses.',
     questions: [
       { text: 'Detail the integration strategy between FinBERT and your LSTM model in NeuroTrade.', score: 85 },
-      { text: 'How did you handle data flow discrepancies between sentiment scores and time-series outputs?', score: 79 },
+      { text: 'How did you handle data flow discrepancies between sentiment and time-series outputs?', score: 79 },
       { text: 'Walk me through your hyperparameter tuning approach for the LSTM component.', score: 81 },
-      { text: 'What evaluation metrics did you choose and why?', score: 75 },
+      { text: 'What evaluation metrics did you choose and why over alternatives like MAE?', score: 75 },
       { text: 'How would you scale this to handle real-time market data at higher frequency?', score: 80 },
     ],
   },
@@ -45,7 +39,7 @@ const MOCK_SESSIONS: Session[] = [
   {
     id: 3, role: 'Data Scientist', date: 'Jun 5, 2025', overall: 63,
     speech: 67, eyeContact: 60, posture: 63, duration: '15 min',
-    feedback: 'First session — some nervousness was expected. Good domain knowledge but answers lacked structure. Try the STAR method for behavioral questions.',
+    feedback: 'First session — some nervousness expected. Good domain knowledge but answers lacked structure. Try the STAR method next time.',
     questions: [
       { text: 'Explain your approach to feature engineering for financial time-series data.', score: 65 },
       { text: 'How do you handle class imbalance in sentiment classification tasks?', score: 63 },
@@ -56,17 +50,15 @@ const MOCK_SESSIONS: Session[] = [
   },
 ];
 
-function scoreColor(v: number) {
-  return v >= 75 ? '#639922' : v >= 50 ? '#BA7517' : '#E24B4A';
-}
-function scoreBg(v: number) {
-  return v >= 75 ? '#EAF3DE' : v >= 50 ? '#FAEEDA' : '#FCEBEB';
-}
+const scoreColor = (v: number) => v >= 75 ? '#10b981' : v >= 50 ? '#f59e0b' : '#ef4444';
+const scoreBg   = (v: number) => v >= 75 ? 'rgba(16,185,129,0.15)' : v >= 50 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)';
+const card = { background: '#1e293b', border: '1px solid #334155', borderRadius: '16px' };
+
+type Filter = 'all' | 'strong' | 'mixed' | 'weak';
 
 export default function History() {
   const router = useRouter();
-  const [sessions, setSessions] = useState<Session[]>(MOCK_SESSIONS);
-  const [filter, setFilter] = useState<'all' | 'strong' | 'mixed' | 'weak'>('all');
+  const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState<number | null>(1);
 
@@ -74,24 +66,17 @@ export default function History() {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) router.push('/');
-      // TODO: replace MOCK_SESSIONS with real query:
-      // const { data } = await supabase.from('interview_sessions').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false });
-      // if (data) setSessions(data);
     })();
   }, [router]);
 
-  const visible = sessions.filter(s => {
-    const matchSearch = s.role.toLowerCase().includes(search.toLowerCase());
-    const matchFilter =
-      filter === 'all'    ? true :
-      filter === 'strong' ? s.overall >= 75 :
-      filter === 'mixed'  ? s.overall >= 50 && s.overall < 75 :
-                            s.overall < 50;
-    return matchSearch && matchFilter;
+  const visible = MOCK.filter(s => {
+    const ms = s.role.toLowerCase().includes(search.toLowerCase());
+    const mf = filter === 'all' ? true : filter === 'strong' ? s.overall >= 75 : filter === 'mixed' ? s.overall >= 50 && s.overall < 75 : s.overall < 50;
+    return ms && mf;
   });
 
-  const filterBtns: { key: typeof filter; label: string }[] = [
-    { key: 'all',    label: `All (${sessions.length})` },
+  const filters: { key: Filter; label: string }[] = [
+    { key: 'all',    label: `All (${MOCK.length})` },
     { key: 'strong', label: 'Strong ≥75%' },
     { key: 'mixed',  label: 'Mixed 50–74%' },
     { key: 'weak',   label: 'Needs work <50%' },
@@ -100,108 +85,80 @@ export default function History() {
   return (
     <div>
       <style>{`@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}`}</style>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.1rem' }}>
-        <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 500 }}>Interview history</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', background: 'white', border: '0.5px solid rgba(0,0,0,0.15)', borderRadius: '8px', padding: '5px 10px' }}>
-          <span style={{ fontSize: '13px', color: '#9ca3af' }}>⌕</span>
-          <input
-            type="text"
-            placeholder="Search by role..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ border: 'none', background: 'none', outline: 'none', fontSize: '12px', width: '140px', color: 'inherit' }}
-            aria-label="Search sessions"
-          />
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.3rem' }}>
+        <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 700, color: '#f8fafc' }}>Interview history</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '6px 12px' }}>
+          <span style={{ fontSize: '13px', color: '#64748b' }}>⌕</span>
+          <input type="text" placeholder="Search by role..." value={search} onChange={e => setSearch(e.target.value)}
+            style={{ border: 'none', background: 'none', outline: 'none', fontSize: '12px', width: '140px', color: '#f8fafc' }} />
         </div>
       </div>
 
-      {/* Filter tabs */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
-        {filterBtns.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            style={{
-              fontSize: '12px', padding: '5px 11px', borderRadius: '99px', cursor: 'pointer', fontWeight: 500,
-              background: filter === key ? '#EEEDFE' : 'rgba(0,0,0,0.04)',
-              color: filter === key ? '#534AB7' : '#6b7280',
-              border: filter === key ? 'none' : '0.5px solid rgba(0,0,0,0.1)',
-              transition: 'all 0.12s',
-            }}
-          >
-            {label}
-          </button>
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        {filters.map(({ key, label }) => (
+          <button key={key} onClick={() => setFilter(key)} style={{
+            fontSize: '12px', padding: '6px 12px', borderRadius: '99px', cursor: 'pointer', fontWeight: 500,
+            background: filter === key ? 'linear-gradient(135deg, #3b82f6, #10b981)' : '#1e293b',
+            color: filter === key ? 'white' : '#94a3b8',
+            border: filter === key ? 'none' : '1px solid #334155',
+            transition: 'all 0.12s',
+          }}>{label}</button>
         ))}
       </div>
 
-      {/* Session cards */}
       {visible.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af', fontSize: '13px' }}>
-          No sessions match this filter.
-        </div>
+        <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b', fontSize: '14px' }}>No sessions match this filter.</div>
       )}
 
       {visible.map(s => {
         const open = expanded === s.id;
         return (
-          <div key={s.id} style={{ background: 'white', border: '0.5px solid rgba(0,0,0,0.1)', borderRadius: '12px', marginBottom: '10px', overflow: 'hidden' }}>
-            {/* Header */}
-            <div
-              onClick={() => setExpanded(open ? null : s.id)}
-              style={{ padding: '13px 15px', display: 'flex', alignItems: 'center', gap: '11px', cursor: 'pointer', transition: 'background 0.12s' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.02)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-            >
-              <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: s.overall >= 75 ? '#EEEDFE' : 'rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '16px' }}>
+          <div key={s.id} style={{ ...card, marginBottom: '12px', overflow: 'hidden' }}>
+            <div onClick={() => setExpanded(open ? null : s.id)} style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: s.overall >= 75 ? 'rgba(59,130,246,0.2)' : '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '18px' }}>
                 {s.overall >= 75 ? '★' : '◈'}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 500 }}>{s.role}</p>
-                  {s.id === 1 && <span style={{ fontSize: '10px', background: '#EAF3DE', color: '#3B6D11', padding: '2px 6px', borderRadius: '99px', fontWeight: 500 }}>Recent</span>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#f8fafc' }}>{s.role}</p>
+                  {s.id === 1 && <span style={{ fontSize: '10px', background: 'rgba(16,185,129,0.2)', color: '#10b981', padding: '2px 7px', borderRadius: '99px', fontWeight: 600 }}>Recent</span>}
                 </div>
-                <p style={{ margin: '1px 0 0', fontSize: '11px', color: '#9ca3af' }}>{s.date} · {s.questions.length} questions · {s.duration}</p>
+                <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#64748b' }}>{s.date} · {s.questions.length} questions · {s.duration}</p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 500, color: scoreColor(s.overall) }}>{s.overall}%</div>
-                  <div style={{ fontSize: '10px', color: '#9ca3af' }}>overall</div>
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: scoreColor(s.overall) }}>{s.overall}%</div>
+                  <div style={{ fontSize: '10px', color: '#64748b' }}>overall</div>
                 </div>
-                <span style={{ fontSize: '14px', color: '#9ca3af', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>▾</span>
+                <span style={{ color: '#64748b', display: 'inline-block', transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none' }}>▾</span>
               </div>
             </div>
 
-            {/* Expanded body */}
             {open && (
-              <div style={{ padding: '0 15px 14px', animation: 'fadein 0.15s ease' }}>
-                {/* Score breakdown */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+              <div style={{ padding: '0 16px 16px', animation: 'fadein 0.15s ease' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '14px' }}>
                   {[{ label: 'Speech', value: s.speech }, { label: 'Eye contact', value: s.eyeContact }, { label: 'Posture', value: s.posture }].map(({ label, value }) => (
-                    <div key={label} style={{ background: 'rgba(0,0,0,0.03)', borderRadius: '8px', padding: '9px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '15px', fontWeight: 500, color: scoreColor(value) }}>{value}%</div>
-                      <div style={{ fontSize: '10px', color: '#9ca3af' }}>{label}</div>
+                    <div key={label} style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '16px', fontWeight: 700, color: scoreColor(value) }}>{value}%</div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>{label}</div>
                     </div>
                   ))}
                 </div>
-
-                {/* Questions */}
-                <p style={{ margin: '0 0 7px', fontSize: '11px', fontWeight: 500, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Questions asked</p>
+                <p style={{ margin: '0 0 8px', fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Questions asked</p>
                 {s.questions.map((q, i) => (
-                  <div key={i} style={{ padding: '9px 0', borderBottom: i < s.questions.length - 1 ? '0.5px solid rgba(0,0,0,0.08)' : 'none', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                    <span style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '99px', fontWeight: 500, background: scoreBg(q.score), color: scoreColor(q.score), flexShrink: 0, whiteSpace: 'nowrap' }}>{q.score}%</span>
-                    <p style={{ margin: 0, fontSize: '12px' }}>{q.text}</p>
+                  <div key={i} style={{ padding: '10px 0', borderBottom: i < s.questions.length - 1 ? '1px solid #1e293b' : 'none', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                    <span style={{ fontSize: '11px', padding: '3px 7px', borderRadius: '99px', fontWeight: 600, background: scoreBg(q.score), color: scoreColor(q.score), flexShrink: 0, whiteSpace: 'nowrap' }}>{q.score}%</span>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#cbd5e1' }}>{q.text}</p>
                   </div>
                 ))}
-
-                {/* Feedback */}
-                <div style={{ marginTop: '11px', padding: '9px 11px', background: 'rgba(0,0,0,0.03)', borderRadius: '8px' }}>
-                  <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}><strong>AI feedback:</strong> {s.feedback}</p>
+                <div style={{ marginTop: '12px', padding: '10px 12px', background: '#0f172a', border: '1px solid #334155', borderRadius: '10px' }}>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}><strong style={{ color: '#f8fafc' }}>AI feedback:</strong> {s.feedback}</p>
                 </div>
-
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: '7px', marginTop: '10px' }}>
-                  <button onClick={() => router.push('/results')} style={{ fontSize: '12px', background: '#EEEDFE', color: '#534AB7', border: 'none', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer' }}>Full results</button>
-                  <button onClick={() => router.push('/dashboard')} style={{ fontSize: '12px', background: 'rgba(0,0,0,0.04)', color: '#6b7280', border: '0.5px solid rgba(0,0,0,0.1)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer' }}>Practice again ↗</button>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                  <button onClick={() => router.push('/upload')} style={{ fontSize: '12px', background: 'linear-gradient(135deg, #3b82f6, #10b981)', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer', fontWeight: 600 }}>Practice again</button>
                 </div>
               </div>
             )}
