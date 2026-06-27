@@ -130,9 +130,9 @@ export default function Home() {
           <span style={{ fontSize: '16px', fontWeight: '600', letterSpacing: '-0.4px' }}>MockStar</span>
         </div>
         <div style={{ display: 'flex', gap: '28px' }}>
-          {['Features', 'How it works', 'Pricing'].map(l => (
-            <span key={l} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', cursor: 'pointer' }}>{l}</span>
-          ))}
+          <span onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', cursor: 'pointer' }}>Features</span>
+          <span onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', cursor: 'pointer' }}>How it works</span>
+          <span onClick={() => document.getElementById('auth-card')?.scrollIntoView({ behavior: 'smooth' })} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', cursor: 'pointer' }}>Sign in</span>
         </div>
         <button onClick={() => document.getElementById('auth-card')?.scrollIntoView({ behavior: 'smooth' })} style={{ background: '#534AB7', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 18px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>
           Get started →
@@ -166,81 +166,29 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── MOCK INTERVIEW PREVIEW ── */}
-        <section style={{ maxWidth: '780px', margin: '0 auto', padding: '0 32px 80px' }}>
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: '20px', overflow: 'hidden', animation: 'float 5s ease-in-out infinite' }}>
-            {/* browser bar */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '0.5px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                {['#E24B4A','#EF9F27','#639922'].map(c => <div key={c} style={{ width: '9px', height: '9px', borderRadius: '50%', background: c }} />)}
-              </div>
-              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>mockstar — technical interview in progress</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#E24B4A', animation: 'glow 1s step-end infinite' }} />
-                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>REC</span>
-                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)', marginLeft: '10px' }}>Q 2 / 5</span>
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
-              {/* left */}
-              <div style={{ padding: '20px', borderRight: '0.5px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ fontSize: '9px', color: '#534AB7', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '10px' }}>Current question</div>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', lineHeight: 1.6, marginBottom: '16px' }}>"How did you handle the integration between FinBERT sentiment scores and LSTM predictions in NeuroTrade to produce a unified signal?"</p>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                  {['FinBERT','LSTM','Architecture'].map(t => <span key={t} style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '2px 9px' }}>{t}</span>)}
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {[{ l: 'Content', v: 84, c: '#4ade80' }, { l: 'Eye contact', v: 71, c: '#EF9F27' }, { l: 'Posture', v: 90, c: '#4ade80' }].map(s => (
-                    <div key={s.l} style={{ flex: 1 }}>
-                      <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', marginBottom: '4px' }}>{s.l}</div>
-                      <div style={{ height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px' }}><div style={{ height: '3px', borderRadius: '2px', background: s.c, width: `${s.v}%` }} /></div>
-                      <div style={{ fontSize: '10px', color: s.c, marginTop: '3px', fontWeight: '600' }}>{s.v}%</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* right */}
-              <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ background: '#0a0a16', borderRadius: '10px', aspectRatio: '4/3', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', border: '0.5px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(83,74,183,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(83,74,183,0.06) 1px,transparent 1px)', backgroundSize: '20px 20px', borderRadius: '10px' }} />
-                  <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#1a1a2e', border: '2px solid rgba(83,74,183,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#AFA9EC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                  </div>
-                </div>
-                {/* waveform — deterministic heights to avoid hydration mismatch */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '28px', padding: '0 4px' }}>
-                  {[8,14,20,12,24,10,18,22,8,16,24,12,20,8,18,14,22,10,16,24,12,18].map((h, i) => (
-                    <div key={i} style={{ flex: 1, borderRadius: '2px', background: '#534AB7', opacity: 0.5 + (i % 3) * 0.2, height: `${h}px`, animation: `glow ${0.4 + (i % 4) * 0.15}s ease-in-out ${i * 0.05}s infinite alternate` }} />
-                  ))}
-                </div>
-              </div>
-            </div>
-            {/* ticker */}
-            <div style={{ overflow: 'hidden', borderTop: '0.5px solid rgba(255,255,255,0.06)', padding: '8px 0' }}>
-              <div style={{ display: 'flex', gap: '32px', animation: 'ticker 18s linear infinite', width: 'max-content' }}>
-                {['✓ Eye contact detected', '• Filler words: 1', '• Pace: 148 wpm', '◆ Clarity: 84', '✓ Posture: good', '✓ Eye contact detected', '• Filler words: 1', '• Pace: 148 wpm', '◆ Clarity: 84', '✓ Posture: good'].map((t, i) => (
-                  <span key={i} style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' }}>{t}</span>
-                ))}
-              </div>
-            </div>
+        {/* ── HOW IT WORKS ── */}
+        <section id="how-it-works" style={{ maxWidth: '780px', margin: '0 auto', padding: '0 32px 80px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+            <div style={{ fontSize: '11px', color: '#534AB7', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '10px' }}>How it works</div>
+            <h2 style={{ fontSize: '28px', fontWeight: '600', letterSpacing: '-0.8px', margin: 0 }}>Three steps to interview-ready.</h2>
           </div>
-          <style>{`@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}`}</style>
-        </section>
-
-        {/* ── STATS ── */}
-        <section style={{ maxWidth: '780px', margin: '0 auto', padding: '0 32px 80px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px' }}>
-            {[{ n: '12k+', l: 'interviews practiced' }, { n: '94%', l: 'offer rate after 5 sessions' }, { n: '3 min', l: 'to your first mock interview' }].map((s, i) => (
-              <div key={i} style={{ background: 'rgba(255,255,255,0.02)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '16px', padding: '24px', textAlign: 'center' }}>
-                <div className="stat-num">{s.n}</div>
-                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginTop: '6px' }}>{s.l}</div>
+            {[
+              { step: '01', title: 'Upload resume', desc: 'Drop your PDF. AI reads your skills, projects, and experience.' },
+              { step: '02', title: 'Answer on camera', desc: 'Get 5 tailored questions. Record your answers in real time.' },
+              { step: '03', title: 'Get scored', desc: 'Instant feedback on content, eye contact, posture, and speech.' },
+            ].map((s, i) => (
+              <div key={i} style={{ background: 'rgba(255,255,255,0.02)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '16px', padding: '24px' }}>
+                <div style={{ fontSize: '11px', color: '#534AB7', fontWeight: '600', letterSpacing: '1px', marginBottom: '12px' }}>{s.step}</div>
+                <div style={{ fontSize: '15px', fontWeight: '500', color: '#fff', marginBottom: '8px' }}>{s.title}</div>
+                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>{s.desc}</div>
               </div>
             ))}
           </div>
         </section>
 
         {/* ── FEATURES ── */}
-        <section style={{ maxWidth: '780px', margin: '0 auto', padding: '0 32px 80px' }}>
+        <section id="features" style={{ maxWidth: '780px', margin: '0 auto', padding: '0 32px 80px' }}>
           <div style={{ textAlign: 'center', marginBottom: '36px' }}>
             <div style={{ fontSize: '11px', color: '#534AB7', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '10px' }}>What makes it different</div>
             <h2 style={{ fontSize: '28px', fontWeight: '600', letterSpacing: '-0.8px', margin: 0 }}>Not just questions. A full coach.</h2>
