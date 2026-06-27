@@ -3,7 +3,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
-export default function Sidebar() {
+export default function Sidebar() { 
   const router = useRouter();
   const path = usePathname();
 
