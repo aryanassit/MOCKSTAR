@@ -207,10 +207,10 @@ export default function Home() {
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#AFA9EC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                   </div>
                 </div>
-                {/* waveform */}
+                {/* waveform — deterministic heights to avoid hydration mismatch */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '28px', padding: '0 4px' }}>
-                  {Array.from({ length: 22 }, (_, i) => (
-                    <div key={i} style={{ flex: 1, borderRadius: '2px', background: '#534AB7', opacity: 0.6 + Math.sin(i) * 0.4, height: `${Math.abs(Math.sin(i * 0.7) * 18 + 6)}px`, animation: `glow ${0.4 + (i % 4) * 0.15}s ease-in-out ${i * 0.05}s infinite alternate` }} />
+                  {[8,14,20,12,24,10,18,22,8,16,24,12,20,8,18,14,22,10,16,24,12,18].map((h, i) => (
+                    <div key={i} style={{ flex: 1, borderRadius: '2px', background: '#534AB7', opacity: 0.5 + (i % 3) * 0.2, height: `${h}px`, animation: `glow ${0.4 + (i % 4) * 0.15}s ease-in-out ${i * 0.05}s infinite alternate` }} />
                   ))}
                 </div>
               </div>
