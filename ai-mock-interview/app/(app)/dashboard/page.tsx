@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabaseClient';
 
@@ -38,14 +38,14 @@ function AnimRing({ score, color, size = 110, stroke = 9, delay = 0 }: {
   const displayed = useCounter(score, 1400, delay);
   return (
     <div style={{ position: 'relative', width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="ring-glow" style={{ filter: `drop-shadow(0 0 10px ${color}55)` }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ filter: `drop-shadow(0 0 10px ${color}55)` }}>
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1e293b" strokeWidth={stroke} />
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
           strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
           style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%', transformBox: 'fill-box', transition: 'stroke-dashoffset 1.5s cubic-bezier(0.22,1,0.36,1)' }} />
       </svg>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <span className="stat-num" style={{ fontSize: size / 5, fontWeight: 700, color: '#f8fafc', lineHeight: 1 }}>{displayed}%</span>
+        <span style={{ fontSize: size / 5, fontWeight: 700, color: '#f8fafc', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{displayed}%</span>
         <span style={{ fontSize: size / 10, color: '#64748b' }}>avg</span>
       </div>
     </div>
@@ -64,15 +64,10 @@ function SkillBar({ label, value, color, delay = 0 }: { label: string; value: nu
     <div style={{ marginBottom: '14px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
         <span style={{ fontSize: '12px', color: '#94a3b8' }}>{label}</span>
-        <span className="stat-num" style={{ fontSize: '12px', fontWeight: 600, color: '#f8fafc' }}>{displayed}%</span>
+        <span style={{ fontSize: '12px', fontWeight: 600, color: '#f8fafc', fontVariantNumeric: 'tabular-nums' }}>{displayed}%</span>
       </div>
       <div style={{ background: '#1e293b', borderRadius: '4px', height: '7px', overflow: 'hidden' }}>
-        <div style={{
-          height: '7px', borderRadius: '4px', background: color,
-          width: filled ? `${value}%` : '0%',
-          transition: 'width 1.2s cubic-bezier(0.22,1,0.36,1)',
-          boxShadow: `0 0 8px ${color}66`,
-        }} />
+        <div style={{ height: '7px', borderRadius: '4px', background: color, width: filled ? `${value}%` : '0%', transition: 'width 1.2s cubic-bezier(0.22,1,0.36,1)', boxShadow: `0 0 8px ${color}66` }} />
       </div>
     </div>
   );
@@ -87,11 +82,25 @@ const MOCK = [
   { id: 3, role: 'Data Scientist', date: '14 days ago', overall: 63, speech: 67, eyeContact: 60, posture: 63 },
 ];
 
+const avg = (key: keyof typeof MOCK[0]) =>
+  Math.round(MOCK.reduce((s, x) => s + (x[key] as number), 0) / MOCK.length);
+
 export default function Dashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [hasResume, setHasResume] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // ── All hooks at top level — never inside loops ──────────────
+  const avgOverall = avg('overall');
+  const avgSpeech  = avg('speech');
+  const avgEye     = avg('eyeContact');
+  const avgPosture = avg('posture');
+
+  const cSessions = useCounter(3,           800,  200);
+  const cBest     = useCounter(78,          1000, 300);
+  const cSpeech   = useCounter(avgSpeech,   1200, 400);
+  const cPosture  = useCounter(avgPosture,  1200, 500);
 
   useEffect(() => {
     (async () => {
@@ -104,17 +113,18 @@ export default function Dashboard() {
     })();
   }, [router]);
 
-  const sessions = useCounter(3, 800, 200);
-  const bestScore = useCounter(78, 1000, 300);
-
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80vh' }}>
       <div style={{ width: '36px', height: '36px', border: '3px solid #1e293b', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 0.8s linear infinite', boxShadow: '0 0 16px rgba(59,130,246,0.4)' }} />
     </div>
   );
 
-  const avg = (key: string) => Math.round(MOCK.reduce((s, x: any) => s + x[key], 0) / MOCK.length);
-  const avgOverall = avg('overall'), avgSpeech = avg('speech'), avgEye = avg('eyeContact'), avgPosture = avg('posture');
+  const stats = [
+    { label: 'Sessions',   value: cSessions, suffix: ''  },
+    { label: 'Best score', value: cBest,     suffix: '%' },
+    { label: 'Avg speech', value: cSpeech,   suffix: '%' },
+    { label: 'Avg posture',value: cPosture,  suffix: '%' },
+  ];
 
   return (
     <div>
@@ -124,17 +134,16 @@ export default function Dashboard() {
           <h1 style={{ margin: '0 0 4px', fontSize: '22px', fontWeight: 700, color: '#f8fafc', letterSpacing: '-0.3px' }}>Dashboard</h1>
           <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>3 sessions completed · improving each time</p>
         </div>
-        <button
-          onClick={() => router.push('/upload')}
-          className="btn-glow"
-          style={{ background: 'linear-gradient(135deg, #3b82f6, #10b981)', backgroundSize: '200% 200%', color: 'white', border: 'none', borderRadius: '10px', padding: '9px 18px', fontSize: '13px', cursor: 'pointer', fontWeight: 700, boxShadow: '0 4px 16px rgba(59,130,246,0.35)' }}
-        >+ Start interview</button>
+        <button onClick={() => router.push('/upload')} className="btn-glow"
+          style={{ background: 'linear-gradient(135deg, #3b82f6, #10b981)', backgroundSize: '200% 200%', color: 'white', border: 'none', borderRadius: '10px', padding: '9px 18px', fontSize: '13px', cursor: 'pointer', fontWeight: 700, boxShadow: '0 4px 16px rgba(59,130,246,0.35)' }}>
+          + Start interview
+        </button>
       </div>
 
       {!hasResume && (
         <div className={mounted ? 'anim-fade-up d-100' : ''} style={{ padding: '12px 16px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '10px', marginBottom: '16px', fontSize: '13px', color: '#fbbf24', opacity: mounted ? undefined : 0 }}>
           No resume uploaded yet.{' '}
-          <button onClick={() => router.push('/upload')} style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', fontSize: '13px', padding: 0, fontWeight: 600, transition: 'color 0.15s' }}>Upload one to start →</button>
+          <button onClick={() => router.push('/upload')} style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', fontSize: '13px', padding: 0, fontWeight: 600 }}>Upload one to start →</button>
         </div>
       )}
 
@@ -146,15 +155,10 @@ export default function Dashboard() {
           <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#10b981', fontWeight: 600 }}>↑ {MOCK[0].overall - MOCK[MOCK.length - 1].overall} pts since first session</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: '10px' }}>
-          {[
-            { label: 'Sessions', value: sessions, suffix: '' },
-            { label: 'Best score', value: bestScore, suffix: '%' },
-            { label: 'Avg speech', value: useCounter(avgSpeech, 1200, 400), suffix: '%' },
-            { label: 'Avg posture', value: useCounter(avgPosture, 1200, 500), suffix: '%' },
-          ].map(({ label, value, suffix }, i) => (
+          {stats.map(({ label, value, suffix }) => (
             <div key={label} className="card-hover" style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '14px 16px' }}>
               <p style={{ margin: '0 0 4px', fontSize: '11px', color: '#64748b' }}>{label}</p>
-              <p className="stat-num" style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: '#f8fafc' }}>{value}{suffix}</p>
+              <p style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: '#f8fafc', fontVariantNumeric: 'tabular-nums' }}>{value}{suffix}</p>
             </div>
           ))}
         </div>
@@ -177,7 +181,7 @@ export default function Dashboard() {
         <div className={`card-hover ${mounted ? 'anim-fade-up d-400' : ''}`} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '1.25rem', opacity: mounted ? undefined : 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
             <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#f8fafc' }}>Recent sessions</p>
-            <button onClick={() => router.push('/history')} style={{ fontSize: '12px', color: '#60a5fa', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}>View all</button>
+            <button onClick={() => router.push('/history')} style={{ fontSize: '12px', color: '#60a5fa', background: 'none', border: 'none', cursor: 'pointer' }}>View all</button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {MOCK.map((s, i) => (
@@ -191,7 +195,7 @@ export default function Dashboard() {
                   <p style={{ margin: '0 0 2px', fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>{s.role}</p>
                   <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>{s.date}</p>
                 </div>
-                <span style={{ fontSize: '14px', fontWeight: 700, color: scoreColor(s.overall), background: scoreBg(s.overall), padding: '4px 10px', borderRadius: '99px', transition: 'transform 0.2s ease' }}>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: scoreColor(s.overall), background: scoreBg(s.overall), padding: '4px 10px', borderRadius: '99px' }}>
                   {s.overall}%
                 </span>
               </div>
