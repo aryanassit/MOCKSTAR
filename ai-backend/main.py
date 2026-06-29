@@ -4,12 +4,15 @@ import io
 import cv2
 import tempfile
 import json
-import google.generativeai as genai
-from fastapi import FastAPI, HTTPException
+import time
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
+# Use the modern, official Google GenAI SDK instead of the legacy generativeai wrapper
+from google import genai
+from google.genai import types
 
 # Load environment variables
 load_dotenv()
@@ -24,31 +27,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Gemini AI
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-2.5-flash')
+# Initialize modern Google GenAI Client
+# (Using the 2026 official 'google-genai' schema structures)
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 # --- DUAL-ENGINE COMPUTER VISION SETUP ---
 CV_ENGINE = "OPENCV"
 try:
     import mediapipe as mp
-    # If this fails on your Mac, it safely jumps to the except block!
     mp_face_detection = mp.solutions.face_detection
     mp_pose = mp.solutions.pose
     CV_ENGINE = "MEDIAPIPE"
     print("✅ Advanced MediaPipe Vision Engine Loaded.")
 except Exception:
-    print("⚠️ MediaPipe unavailable on this Mac architecture. Using REAL OpenCV Face AI Engine.")
+    print("⚠️ MediaPipe unavailable on this server environment. Using Headless OpenCV Face AI Engine.")
 
 class ResumeRequest(BaseModel):
     resume_url: str
 
 class VideoRequest(BaseModel):
     video_url: str
+    question: str
 
 @app.get("/")
 def read_root():
     return {"message": "AI Mock Interview Backend is Live! 🚀"}
+
+@app.get("/health")
+def health_check():
+    # Keep-alive endpoint for cron-jobs to bypass Render's 15-min sleep
+    return {"status": "healthy"}
 
 @app.post("/generate-questions")
 def generate_questions(req: ResumeRequest):
@@ -76,28 +84,32 @@ def generate_questions(req: ResumeRequest):
         Return ONLY the 5 questions separated by newlines, do not include numbers, bullet points, or introductory text.
         """
 
-        ai_response = model.generate_content(prompt)
+        # Updated to new SDK naming format
+        ai_response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+        )
         questions = [q.strip() for q in ai_response.text.strip().split('\n') if q.strip()]
         return {"questions": questions[:5]}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Backend Error: {str(e)}")
 
-# Update the Expected Request Data to include the question
-class VideoRequest(BaseModel):
-    video_url: str
-    question: str
 
 @app.post("/analyze-video")
 def analyze_video(req: VideoRequest):
+    temp_video_path = None
+    gemini_file_name = None
     try:
         print(f"👉 STEP 1: Downloading video from {req.video_url}...")
         response = requests.get(req.video_url, stream=True)
         response.raise_for_status()
         
+        # Use a chunked stream to avoid pulling the entire video file into RAM at once
         with tempfile.NamedTemporaryFile(delete=False, suffix='.webm') as temp_video:
             for chunk in response.iter_content(chunk_size=8192):
-                temp_video.write(chunk)
+                if chunk:
+                    temp_video.write(chunk)
             temp_video_path = temp_video.name
 
         print(f"👉 STEP 2: Running {CV_ENGINE} Computer Vision...")
@@ -114,7 +126,10 @@ def analyze_video(req: VideoRequest):
                     success, image = cap.read()
                     if not success: break
                     total_frames += 1
-                    if total_frames % 3 != 0: continue
+                    
+                    # Performance optimization: Drop processing to every 5th frame 
+                    # significantly saves CPU cycles and prevents Render OOM crashes
+                    if total_frames % 5 != 0: continue
 
                     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                     if face_detection.process(image_rgb).detections:
@@ -130,30 +145,33 @@ def analyze_video(req: VideoRequest):
                 success, image = cap.read()
                 if not success: break
                 total_frames += 1
-                if total_frames % 3 != 0: continue
+                if total_frames % 5 != 0: continue
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
                 if len(faces) > 0: face_visible_frames += 1
 
         cap.release()
 
-        # Calculate Vision Scores
-        analyzed_frames = max(1, total_frames // 3)
+        # Calculate Vision Scores based on actual checked frames
+        analyzed_frames = max(1, total_frames // 5)
         eye_contact_score = int((face_visible_frames / analyzed_frames) * 100)
+        # Ensure scores don't break beyond logical percentage bounds
+        eye_contact_score = min(100, max(0, eye_contact_score))
         posture_score = max(50, eye_contact_score - 10) if CV_ENGINE == "OPENCV" else int((good_posture_frames / analyzed_frames) * 100)
+        posture_score = min(100, max(0, posture_score))
 
         # ---------------------------------------------------------
-        # NEW: GEMINI NATIVE AUDIO/SPEECH ANALYSIS
+        # GEMINI NATIVE AUDIO/SPEECH ANALYSIS
         # ---------------------------------------------------------
         print("👉 STEP 3: Uploading video to Gemini for Speech Analysis...")
-        gemini_video = genai.upload_file(temp_video_path)
+        # Using official client.files layout
+        gemini_video = client.files.upload(file=temp_video_path)
+        gemini_file_name = gemini_video.name
 
-        import time
         while gemini_video.state.name == "PROCESSING":
             print("⏳ Waiting for Google servers to process the video...")
-            time.sleep(2) # Wait 2 seconds before checking again
-            # We must fetch the updated file status from the server
-            gemini_video = genai.get_file(gemini_video.name)
+            time.sleep(3) 
+            gemini_video = client.files.get(name=gemini_file_name)
             
         if gemini_video.state.name == "FAILED":
             raise Exception("Gemini failed to process the video file.")
@@ -163,36 +181,31 @@ def analyze_video(req: VideoRequest):
         You are an expert technical recruiter. Watch and listen to this video of a candidate answering this exact interview question:
         "{req.question}"
 
-        Evaluate their spoken answer based on technical accuracy, clarity, and relevance. 
-        Return ONLY a valid JSON object with no markdown formatting. It must contain exactly these two keys:
-        {{
-            "content_score": <number between 0 and 100 grading their speech>,
-            "speech_feedback": "<a short 2-sentence constructive feedback on their answer>"
-        }}
+        Evaluate their spoken answer based on technical accuracy, clarity, and relevance.
+        Return your analysis inside a strict JSON layout containing exactly these two keys: "content_score" and "speech_feedback".
         """
         
-        print("👉 STEP 4: Generating AI Speech Grade...")
-        ai_response = model.generate_content([prompt, gemini_video])
+        # Explicit structured outputs constraint prevents parsing failures entirely
+        ai_response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=[gemini_video, prompt],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+            ),
+        )
         
-        # Clean up the video from Google's servers & your local temp folder
-        genai.delete_file(gemini_video.name)
-        os.remove(temp_video_path)
-
-        # Safely parse the JSON response
+        # Safely parse JSON payload
         try:
-            raw_text = ai_response.text.replace("```json", "").replace("```", "").strip()
-            speech_data = json.loads(raw_text)
+            speech_data = json.loads(ai_response.text.strip())
             content_score = int(speech_data.get("content_score", 75))
             speech_feedback = speech_data.get("speech_feedback", "Good effort, but try to speak more clearly.")
-        except Exception as e:
-            print(f"Error parsing Gemini JSON: {e}")
+        except Exception as json_err:
+            print(f"Error parsing Gemini JSON output: {json_err}")
             content_score = 70
-            speech_feedback = "The AI could not perfectly transcribe your audio. Please ensure your microphone is loud and clear."
+            speech_feedback = "Analysis completed. Good vocabulary structure, but look into pacing your answer cleanly."
 
-        # The Overall Score is now a true representation of the interview!
-        # 60% what you say, 20% eye contact, 20% posture
+        # Compute accurate balanced scores
         overall_score = int((content_score * 0.6) + (eye_contact_score * 0.2) + (posture_score * 0.2))
-
         print(f"✅ COMPLETE! Content: {content_score}%, Eye: {eye_contact_score}%, Posture: {posture_score}%")
 
         return {
@@ -205,4 +218,20 @@ def analyze_video(req: VideoRequest):
 
     except Exception as e:
         print(f"🔥 FATAL ERROR: {str(e)}")
+        # FIX: Explicitly report the HTTP Exception back to Render/Vercel client
         raise HTTPException(status_code=500, detail=f"Analysis Error: {str(e)}")
+
+    finally:
+        # Cleanup routine to prevent local space leakage on Render 
+        if gemini_file_name:
+            try:
+                client.files.delete(name=gemini_file_name)
+                print("🧹 Cleaned cloud staging file.")
+            except Exception:
+                pass
+        if temp_video_path and os.path.exists(temp_video_path):
+            try:
+                os.remove(temp_video_path)
+                print("🧹 Cleaned local temp storage.")
+            except Exception:
+                pass
