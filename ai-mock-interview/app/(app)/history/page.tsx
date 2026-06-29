@@ -6,91 +6,83 @@ import { supabase } from '../../../lib/supabaseClient';
 
 interface Question { text: string; score: number }
 interface Session {
-  id: number; role: string; date: string;
-  overall: number; speech: number; eyeContact: number; posture: number;
-  duration: string; feedback: string; questions: Question[];
+  id: string;
+  overall_score: number;
+  speech_score: number;
+  eye_contact_score: number;
+  posture_score: number;
+  feedback: string;
+  questions: Question[];
+  created_at: string;
 }
-
-const MOCK: Session[] = [
-  {
-    id: 1, role: 'ML Engineer', date: 'Jun 19, 2025', overall: 78,
-    speech: 82, eyeContact: 71, posture: 78, duration: '14 min',
-    feedback: 'Strong technical depth on FinBERT-LSTM integration. Eye contact dropped during longer answers — practice camera lock during pauses.',
-    questions: [
-      { text: 'Detail the integration strategy between FinBERT and your LSTM model in NeuroTrade.', score: 85 },
-      { text: 'How did you handle data flow discrepancies between sentiment and time-series outputs?', score: 79 },
-      { text: 'Walk me through your hyperparameter tuning approach for the LSTM component.', score: 81 },
-      { text: 'What evaluation metrics did you choose and why over alternatives like MAE?', score: 75 },
-      { text: 'How would you scale this to handle real-time market data at higher frequency?', score: 80 },
-    ],
-  },
-  {
-    id: 2, role: 'Full Stack Developer', date: 'Jun 12, 2025', overall: 65,
-    speech: 68, eyeContact: 58, posture: 66, duration: '12 min',
-    feedback: 'Answers were brief and missed depth on system design. Eye contact notably low — try closing the preview panel during recording.',
-    questions: [
-      { text: 'Describe your experience building REST APIs with FastAPI.', score: 70 },
-      { text: 'How do you handle state management in complex React applications?', score: 68 },
-      { text: 'Walk me through your database schema design for a trading platform.', score: 62 },
-      { text: 'How would you approach load balancing for a high-traffic web service?', score: 60 },
-      { text: 'Describe a challenging debugging session and how you resolved it.', score: 65 },
-    ],
-  },
-  {
-    id: 3, role: 'Data Scientist', date: 'Jun 5, 2025', overall: 63,
-    speech: 67, eyeContact: 60, posture: 63, duration: '15 min',
-    feedback: 'First session — some nervousness expected. Good domain knowledge but answers lacked structure. Try the STAR method next time.',
-    questions: [
-      { text: 'Explain your approach to feature engineering for financial time-series data.', score: 65 },
-      { text: 'How do you handle class imbalance in sentiment classification tasks?', score: 63 },
-      { text: 'Describe your experience with model interpretability techniques.', score: 58 },
-      { text: 'How would you set up an A/B test for a new trading signal?', score: 60 },
-      { text: 'Walk me through a project where your initial model approach failed.', score: 70 },
-    ],
-  },
-];
 
 const scoreColor = (v: number) => v >= 75 ? '#10b981' : v >= 50 ? '#f59e0b' : '#ef4444';
 const scoreBg   = (v: number) => v >= 75 ? 'rgba(16,185,129,0.15)' : v >= 50 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)';
-const card = { background: '#1e293b', border: '1px solid #334155', borderRadius: '16px' };
+const timeAgo   = (iso: string) => {
+  const diff = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days} days ago`;
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
 
 type Filter = 'all' | 'strong' | 'mixed' | 'weak';
 
 export default function History() {
   const router = useRouter();
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
-  const [expanded, setExpanded] = useState<number | null>(1);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) router.push('/');
+      if (!session) { router.push('/'); return; }
+      const { data } = await supabase
+        .from('interview_sessions')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+      setSessions(data ?? []);
+      if (data?.[0]) setExpanded(data[0].id);
+      setLoading(false);
     })();
   }, [router]);
 
-  const visible = MOCK.filter(s => {
-    const ms = s.role.toLowerCase().includes(search.toLowerCase());
-    const mf = filter === 'all' ? true : filter === 'strong' ? s.overall >= 75 : filter === 'mixed' ? s.overall >= 50 && s.overall < 75 : s.overall < 50;
-    return ms && mf;
+  const visible = sessions.filter(s => {
+    const mf =
+      filter === 'all'    ? true :
+      filter === 'strong' ? s.overall_score >= 75 :
+      filter === 'mixed'  ? s.overall_score >= 50 && s.overall_score < 75 :
+                            s.overall_score < 50;
+    return mf;
   });
 
   const filters: { key: Filter; label: string }[] = [
-    { key: 'all',    label: `All (${MOCK.length})` },
+    { key: 'all',    label: `All (${sessions.length})` },
     { key: 'strong', label: 'Strong ≥75%' },
     { key: 'mixed',  label: 'Mixed 50–74%' },
     { key: 'weak',   label: 'Needs work <50%' },
   ];
 
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80vh' }}>
+      <div style={{ width: '36px', height: '36px', border: '3px solid #1e293b', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    </div>
+  );
+
   return (
     <div>
       <style>{`@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}`}</style>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.3rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.1rem' }}>
         <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 700, color: '#f8fafc' }}>Interview history</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '6px 12px' }}>
           <span style={{ fontSize: '13px', color: '#64748b' }}>⌕</span>
-          <input type="text" placeholder="Search by role..." value={search} onChange={e => setSearch(e.target.value)}
+          <input type="text" placeholder="Search feedback..." value={search} onChange={e => setSearch(e.target.value)}
             style={{ border: 'none', background: 'none', outline: 'none', fontSize: '12px', width: '140px', color: '#f8fafc' }} />
         </div>
       </div>
@@ -102,69 +94,94 @@ export default function History() {
             background: filter === key ? 'linear-gradient(135deg, #3b82f6, #10b981)' : '#1e293b',
             color: filter === key ? 'white' : '#94a3b8',
             border: filter === key ? 'none' : '1px solid #334155',
-            transition: 'all 0.12s',
+            transition: 'all 0.15s',
           }}>{label}</button>
         ))}
       </div>
 
-      {visible.length === 0 && (
+      {sessions.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '4rem 2rem', background: '#1e293b', border: '1px solid #334155', borderRadius: '20px' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
+          <h2 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 700, color: '#f8fafc' }}>No interviews yet</h2>
+          <p style={{ margin: '0 0 24px', fontSize: '14px', color: '#64748b' }}>Complete your first mock interview to see your history here.</p>
+          <button onClick={() => router.push('/upload')} className="btn-glow"
+            style={{ background: 'linear-gradient(135deg, #3b82f6, #10b981)', backgroundSize: '200% 200%', color: 'white', border: 'none', borderRadius: '12px', padding: '11px 24px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
+            Start an interview →
+          </button>
+        </div>
+      ) : visible.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b', fontSize: '14px' }}>No sessions match this filter.</div>
-      )}
-
-      {visible.map(s => {
-        const open = expanded === s.id;
-        return (
-          <div key={s.id} style={{ ...card, marginBottom: '12px', overflow: 'hidden' }}>
-            <div onClick={() => setExpanded(open ? null : s.id)} style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: s.overall >= 75 ? 'rgba(59,130,246,0.2)' : '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '18px' }}>
-                {s.overall >= 75 ? '★' : '◈'}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                  <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#f8fafc' }}>{s.role}</p>
-                  {s.id === 1 && <span style={{ fontSize: '10px', background: 'rgba(16,185,129,0.2)', color: '#10b981', padding: '2px 7px', borderRadius: '99px', fontWeight: 600 }}>Recent</span>}
+      ) : (
+        visible.map((s, idx) => {
+          const open = expanded === s.id;
+          const sessionNum = sessions.length - sessions.findIndex(x => x.id === s.id);
+          const questions: Question[] = Array.isArray(s.questions) ? s.questions : [];
+          return (
+            <div key={s.id} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', marginBottom: '12px', overflow: 'hidden', animation: `fadein 0.3s ease ${idx * 60}ms both` }}>
+              <div onClick={() => setExpanded(open ? null : s.id)}
+                style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', transition: 'background 0.15s' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: s.overall_score >= 75 ? 'rgba(59,130,246,0.2)' : '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '18px' }}>
+                  {s.overall_score >= 75 ? '★' : '◈'}
                 </div>
-                <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#64748b' }}>{s.date} · {s.questions.length} questions · {s.duration}</p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '18px', fontWeight: 700, color: scoreColor(s.overall) }}>{s.overall}%</div>
-                  <div style={{ fontSize: '10px', color: '#64748b' }}>overall</div>
-                </div>
-                <span style={{ color: '#64748b', display: 'inline-block', transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none' }}>▾</span>
-              </div>
-            </div>
-
-            {open && (
-              <div style={{ padding: '0 16px 16px', animation: 'fadein 0.15s ease' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '14px' }}>
-                  {[{ label: 'Speech', value: s.speech }, { label: 'Eye contact', value: s.eyeContact }, { label: 'Posture', value: s.posture }].map(({ label, value }) => (
-                    <div key={label} style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '16px', fontWeight: 700, color: scoreColor(value) }}>{value}%</div>
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>{label}</div>
-                    </div>
-                  ))}
-                </div>
-                <p style={{ margin: '0 0 8px', fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Questions asked</p>
-                {s.questions.map((q, i) => (
-                  <div key={i} style={{ padding: '10px 0', borderBottom: i < s.questions.length - 1 ? '1px solid #1e293b' : 'none', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                    <span style={{ fontSize: '11px', padding: '3px 7px', borderRadius: '99px', fontWeight: 600, background: scoreBg(q.score), color: scoreColor(q.score), flexShrink: 0, whiteSpace: 'nowrap' }}>{q.score}%</span>
-                    <p style={{ margin: 0, fontSize: '13px', color: '#cbd5e1' }}>{q.text}</p>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                    <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#f8fafc' }}>Interview #{sessionNum}</p>
+                    {idx === 0 && <span style={{ fontSize: '10px', background: 'rgba(16,185,129,0.2)', color: '#10b981', padding: '2px 7px', borderRadius: '99px', fontWeight: 600 }}>Latest</span>}
                   </div>
-                ))}
-                <div style={{ marginTop: '12px', padding: '10px 12px', background: '#0f172a', border: '1px solid #334155', borderRadius: '10px' }}>
-                  <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}><strong style={{ color: '#f8fafc' }}>AI feedback:</strong> {s.feedback}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#64748b' }}>{timeAgo(s.created_at)} · {questions.length} questions</p>
                 </div>
-                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                  <button onClick={() => router.push('/upload')} style={{ fontSize: '12px', background: 'linear-gradient(135deg, #3b82f6, #10b981)', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer', fontWeight: 600 }}>Practice again</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '18px', fontWeight: 700, color: scoreColor(s.overall_score) }}>{s.overall_score}%</div>
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>overall</div>
+                  </div>
+                  <span style={{ color: '#64748b', display: 'inline-block', transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none' }}>▾</span>
                 </div>
               </div>
-            )}
-          </div>
-        );
-      })}
+
+              {open && (
+                <div style={{ padding: '0 16px 16px', animation: 'fadein 0.2s ease' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+                    {[{ label: 'Speech', value: s.speech_score }, { label: 'Eye contact', value: s.eye_contact_score }, { label: 'Posture', value: s.posture_score }].map(({ label, value }) => (
+                      <div key={label} style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: scoreColor(value) }}>{value}%</div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>{label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {questions.length > 0 && (
+                    <>
+                      <p style={{ margin: '0 0 8px', fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Questions asked</p>
+                      {questions.map((q, i) => (
+                        <div key={i} style={{ padding: '10px 0', borderBottom: i < questions.length - 1 ? '1px solid #0f172a' : 'none', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                          <span style={{ fontSize: '11px', padding: '3px 7px', borderRadius: '99px', fontWeight: 600, background: scoreBg(q.score), color: scoreColor(q.score), flexShrink: 0, whiteSpace: 'nowrap' }}>{q.score}%</span>
+                          <p style={{ margin: 0, fontSize: '13px', color: '#cbd5e1' }}>{q.text}</p>
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {s.feedback && (
+                    <div style={{ marginTop: '12px', padding: '10px 12px', background: '#0f172a', border: '1px solid #334155', borderRadius: '10px' }}>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}><strong style={{ color: '#f8fafc' }}>AI feedback:</strong> {s.feedback}</p>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                    <button onClick={() => router.push('/upload')} className="btn-glow"
+                      style={{ fontSize: '12px', background: 'linear-gradient(135deg, #3b82f6, #10b981)', backgroundSize: '200% 200%', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer', fontWeight: 600 }}>
+                      Practice again
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
     </div>
   );
 }

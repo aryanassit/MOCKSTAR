@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabaseClient';
 
-const card = { background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '1.25rem' };
-
 function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
     <div onClick={onToggle} role="switch" aria-checked={on} tabIndex={0}
@@ -15,6 +13,9 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
     </div>
   );
 }
+
+const card = { background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '1.25rem' };
+const scoreColor = (v: number) => v >= 75 ? '#10b981' : v >= 50 ? '#f59e0b' : '#ef4444';
 
 export default function Profile() {
   const router = useRouter();
@@ -26,28 +27,66 @@ export default function Profile() {
   const [reminders, setReminders] = useState(true);
   const [autoSave, setAutoSave] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState('');
+
+  // Real stats from interview_sessions
+  const [sessionCount, setSessionCount] = useState(0);
+  const [avgScores, setAvgScores] = useState({ overall: 0, speech: 0, eye: 0, posture: 0 });
+  const [memberSince, setMemberSince] = useState('');
+  const [weakArea, setWeakArea] = useState('');
 
   useEffect(() => {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push('/'); return; }
+
       setEmail(session.user.email ?? '');
-      const { data } = await supabase.from('profiles').select('resume_url, display_name').eq('id', session.user.id).single();
-      const name = data?.display_name || session.user.email?.split('@')[0] || 'User';
-      setDisplayName(name); setDraftName(name);
-      if (data?.resume_url) {
-        const parts = data.resume_url.split('/');
+      setUserId(session.user.id);
+
+      // Member since from user created_at
+      const created = new Date(session.user.created_at);
+      setMemberSince(created.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }));
+
+      const [{ data: profile }, { data: sessions }] = await Promise.all([
+        supabase.from('profiles').select('resume_url, display_name').eq('id', session.user.id).single(),
+        supabase.from('interview_sessions').select('*').eq('user_id', session.user.id),
+      ]);
+
+      const name = profile?.display_name || session.user.email?.split('@')[0] || 'User';
+      setDisplayName(name);
+      setDraftName(name);
+
+      if (profile?.resume_url) {
+        const parts = profile.resume_url.split('/');
         setResumeName(decodeURIComponent(parts[parts.length - 1]));
       }
+
+      if (sessions && sessions.length > 0) {
+        const avg = (key: string) => Math.round(sessions.reduce((s: number, x: any) => s + x[key], 0) / sessions.length);
+        const avgSpeech = avg('speech_score');
+        const avgEye    = avg('eye_contact_score');
+        const avgPosture= avg('posture_score');
+        const avgAll    = avg('overall_score');
+        setSessionCount(sessions.length);
+        setAvgScores({ overall: avgAll, speech: avgSpeech, eye: avgEye, posture: avgPosture });
+
+        // Find weakest skill
+        const skills = [
+          { name: 'Eye contact', val: avgEye },
+          { name: 'Posture',     val: avgPosture },
+          { name: 'Speech',      val: avgSpeech },
+        ];
+        setWeakArea(skills.sort((a, b) => a.val - b.val)[0].name);
+      }
+
       setLoading(false);
     })();
   }, [router]);
 
   const saveName = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    await supabase.from('profiles').upsert({ id: session.user.id, display_name: draftName });
-    setDisplayName(draftName); setEditingName(false);
+    await supabase.from('profiles').upsert({ id: userId, display_name: draftName });
+    setDisplayName(draftName);
+    setEditingName(false);
   };
 
   const handleDelete = async () => {
@@ -58,26 +97,31 @@ export default function Profile() {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80vh' }}>
-      <div style={{ width: '32px', height: '32px', border: '3px solid #334155', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div style={{ width: '36px', height: '36px', border: '3px solid #1e293b', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
     </div>
   );
 
-  const initials = displayName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  const initials = displayName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '??';
+
+  const skillBars = [
+    { label: 'Average score',    value: avgScores.overall, color: '#3b82f6' },
+    { label: 'Avg speech',       value: avgScores.speech,  color: '#10b981' },
+    { label: 'Avg eye contact',  value: avgScores.eye,     color: '#f59e0b' },
+    { label: 'Avg posture',      value: avgScores.posture, color: '#3b82f6' },
+  ];
 
   return (
     <div>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       <h1 style={{ margin: '0 0 1.3rem', fontSize: '22px', fontWeight: 700, color: '#f8fafc' }}>Profile</h1>
-
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
 
+        {/* Left column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
           {/* Identity */}
-          <div style={card}>
+          <div style={card} className="card-hover">
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
-              <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 700, color: 'white', flexShrink: 0 }}>{initials}</div>
+              <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', backgroundSize: '200% 200%', animation: 'gradientShift 5s ease infinite', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 700, color: 'white', flexShrink: 0, boxShadow: '0 4px 14px rgba(59,130,246,0.3)' }}>{initials}</div>
               <div>
                 {editingName ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -85,19 +129,26 @@ export default function Profile() {
                       onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false); }}
                       style={{ border: 'none', borderBottom: '1.5px solid #3b82f6', background: 'none', fontSize: '15px', fontWeight: 600, outline: 'none', color: '#f8fafc', padding: '1px 3px', width: '140px' }} />
                     <button onClick={saveName} style={{ fontSize: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer' }}>Save</button>
-                    <button onClick={() => setEditingName(false)} style={{ fontSize: '12px', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>Cancel</button>
+                    <button onClick={() => setEditingName(false)} style={{ fontSize: '12px', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>✕</button>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontSize: '16px', fontWeight: 600, color: '#f8fafc' }}>{displayName}</span>
-                    <button onClick={() => { setEditingName(true); setDraftName(displayName); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '2px', fontSize: '13px' }} aria-label="Edit name">✎</button>
+                    <button onClick={() => { setEditingName(true); setDraftName(displayName); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '2px', fontSize: '13px', transition: 'color 0.15s' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#60a5fa')}
+                      onMouseLeave={e => (e.currentTarget.style.color = '#64748b')}>✎</button>
                   </div>
                 )}
                 <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b' }}>{email}</p>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: '#334155', borderRadius: '10px', overflow: 'hidden' }}>
-              {[{ label: 'Member since', value: 'Jun 2025' }, { label: 'Plan', value: 'Free' }, { label: 'Last active', value: 'Today' }, { label: 'Prep time', value: '41 min' }].map(({ label, value }) => (
+              {[
+                { label: 'Member since',  value: memberSince || '—' },
+                { label: 'Plan',          value: 'Free' },
+                { label: 'Interviews',    value: String(sessionCount) },
+                { label: 'Best skill',    value: sessionCount > 0 ? (avgScores.speech >= avgScores.eye && avgScores.speech >= avgScores.posture ? 'Speech' : avgScores.posture >= avgScores.eye ? 'Posture' : 'Eye contact') : '—' },
+              ].map(({ label, value }) => (
                 <div key={label} style={{ background: '#0f172a', padding: '10px 12px' }}>
                   <p style={{ margin: 0, fontSize: '10px', color: '#64748b' }}>{label}</p>
                   <p style={{ margin: '2px 0 0', fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>{value}</p>
@@ -107,7 +158,7 @@ export default function Profile() {
           </div>
 
           {/* Resume */}
-          <div style={card}>
+          <div style={card} className="card-hover">
             <p style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 600, color: '#f8fafc' }}>Resume on file</p>
             {resumeName ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px' }}>
@@ -120,7 +171,7 @@ export default function Profile() {
             ) : (
               <div style={{ textAlign: 'center', padding: '1.5rem', border: '1px dashed #334155', borderRadius: '10px' }}>
                 <p style={{ margin: '0 0 10px', fontSize: '13px', color: '#64748b' }}>No resume uploaded yet</p>
-                <button onClick={() => router.push('/upload')} style={{ background: 'linear-gradient(135deg, #3b82f6, #10b981)', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}>Upload resume</button>
+                <button onClick={() => router.push('/upload')} className="btn-glow" style={{ background: 'linear-gradient(135deg, #3b82f6, #10b981)', backgroundSize: '200% 200%', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}>Upload resume</button>
               </div>
             )}
           </div>
@@ -129,8 +180,8 @@ export default function Profile() {
           <div style={card}>
             <p style={{ margin: '0 0 14px', fontSize: '14px', fontWeight: 600, color: '#f8fafc' }}>Preferences</p>
             {[
-              { label: 'Email reminders', sub: 'Remind me to practice every 2 days', on: reminders, toggle: () => setReminders(r => !r) },
-              { label: 'Auto-save recordings', sub: 'Keep video clips after each session', on: autoSave, toggle: () => setAutoSave(s => !s) },
+              { label: 'Email reminders',     sub: 'Remind me to practice every 2 days', on: reminders, toggle: () => setReminders(r => !r) },
+              { label: 'Auto-save recordings', sub: 'Keep video clips after each session', on: autoSave,   toggle: () => setAutoSave(s => !s) },
             ].map(({ label, sub, on, toggle }) => (
               <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                 <div>
@@ -143,55 +194,67 @@ export default function Profile() {
           </div>
         </div>
 
+        {/* Right column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-          {/* Stats */}
-          <div style={card}>
+          {/* Performance */}
+          <div style={card} className="card-hover">
             <p style={{ margin: '0 0 14px', fontSize: '14px', fontWeight: 600, color: '#f8fafc' }}>Performance summary</p>
-            {[
-              { label: 'Average score',   value: 71, color: '#3b82f6' },
-              { label: 'Avg speech',      value: 74, color: '#10b981' },
-              { label: 'Avg eye contact', value: 64, color: '#f59e0b' },
-              { label: 'Avg posture',     value: 71, color: '#3b82f6' },
-            ].map(({ label, value, color }) => (
-              <div key={label} style={{ marginBottom: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                  <span style={{ fontSize: '12px', color: '#94a3b8' }}>{label}</span>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#f8fafc' }}>{value}%</span>
+            {sessionCount === 0 ? (
+              <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', padding: '1rem 0' }}>Complete an interview to see your stats here.</p>
+            ) : (
+              skillBars.map(({ label, value, color }) => (
+                <div key={label} style={{ marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>{label}</span>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: scoreColor(value) }}>{value}%</span>
+                  </div>
+                  <div style={{ background: '#0f172a', borderRadius: '3px', height: '6px' }}>
+                    <div style={{ width: `${value}%`, height: '6px', background: color, borderRadius: '3px', transition: 'width 1s ease', boxShadow: `0 0 6px ${color}55` }} />
+                  </div>
                 </div>
-                <div style={{ background: '#0f172a', borderRadius: '3px', height: '6px' }}>
-                  <div style={{ width: `${value}%`, height: '6px', background: color, borderRadius: '3px' }} />
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           {/* Improvement areas */}
           <div style={card}>
             <p style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 600, color: '#f8fafc' }}>Improvement areas</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '10px' }}>
-                <span style={{ fontSize: '18px', flexShrink: 0 }}>👁</span>
-                <div>
-                  <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#fbbf24' }}>Eye contact (64% avg)</p>
-                  <p style={{ margin: 0, fontSize: '11px', color: '#92400e' }}>Focus on the camera lens, not your preview</p>
+            {sessionCount === 0 ? (
+              <p style={{ fontSize: '13px', color: '#64748b' }}>No data yet — complete an interview first.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '10px' }}>
+                  <span style={{ fontSize: '18px', flexShrink: 0 }}>👁</span>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#fbbf24' }}>
+                      {weakArea} ({weakArea === 'Eye contact' ? avgScores.eye : weakArea === 'Posture' ? avgScores.posture : avgScores.speech}% avg)
+                    </p>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#92400e' }}>
+                      {weakArea === 'Eye contact' ? 'Focus on the camera lens, not your preview' :
+                       weakArea === 'Posture'     ? 'Sit upright and face the camera directly' :
+                                                   'Structure answers using the STAR method'}
+                    </p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: '#0f172a', border: '1px solid #334155', borderRadius: '10px' }}>
+                  <span style={{ fontSize: '18px', flexShrink: 0 }}>📋</span>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#f8fafc' }}>Answer structure</p>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>Use STAR method for behavioral questions</p>
+                  </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: '#0f172a', border: '1px solid #334155', borderRadius: '10px' }}>
-                <span style={{ fontSize: '18px', flexShrink: 0 }}>📋</span>
-                <div>
-                  <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#f8fafc' }}>Answer structure</p>
-                  <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>Use STAR method for behavioral questions</p>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Danger zone */}
           <div style={{ ...card, borderLeft: '3px solid #ef4444' }}>
             <p style={{ margin: '0 0 8px', fontSize: '14px', fontWeight: 600, color: '#f8fafc' }}>Danger zone</p>
             <p style={{ margin: '0 0 12px', fontSize: '12px', color: '#64748b' }}>Deleting your account removes all sessions, scores, and history permanently.</p>
-            <button onClick={handleDelete} style={{ fontSize: '13px', background: 'none', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer' }}>
+            <button onClick={handleDelete} style={{ fontSize: '13px', background: 'none', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer', transition: 'all 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}>
               Delete my account
             </button>
           </div>
