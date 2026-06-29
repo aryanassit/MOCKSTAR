@@ -9,8 +9,38 @@ export default function Sidebar() {
   const path = usePathname();
   const [mounted, setMounted] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [initials, setInitials] = useState('');
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const email = session.user.email ?? '';
+      setUserEmail(email);
+
+      // Try to get display_name from profiles table first
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', session.user.id)
+        .single();
+
+      const name = profile?.display_name || email.split('@')[0] || 'User';
+      setDisplayName(name);
+
+      // Build initials from name
+      const parts = name.trim().split(' ');
+      const ini = parts.length >= 2
+        ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+        : name.slice(0, 2).toUpperCase();
+      setInitials(ini);
+
+      setMounted(true);
+    })();
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -33,7 +63,7 @@ export default function Sidebar() {
       minHeight: '100vh',
     }}>
 
-      {/* Logo — animated in */}
+      {/* Logo */}
       <div className={mounted ? 'anim-fade-left d-0' : ''} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '0 6px 1.25rem', opacity: mounted ? undefined : 0 }}>
         <div style={{
           width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
@@ -47,7 +77,7 @@ export default function Sidebar() {
         <span style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc', letterSpacing: '-0.2px' }}>Mockstar</span>
       </div>
 
-      {/* Nav items */}
+      {/* Nav */}
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
         {navItems.map(({ href, label, icon }, i) => {
           const active = path === href;
@@ -80,7 +110,6 @@ export default function Sidebar() {
 
         <div style={{ margin: '12px 0', borderTop: '1px solid #1e293b' }} />
 
-        {/* New interview — glowing button */}
         <button
           onClick={() => router.push('/upload')}
           className={`btn-glow ${mounted ? 'anim-fade-left d-400' : ''}`}
@@ -99,7 +128,7 @@ export default function Sidebar() {
         </button>
       </nav>
 
-      {/* User row */}
+      {/* User row — real data from Supabase */}
       <div className={mounted ? 'anim-fade-up d-500' : ''} style={{
         marginTop: 'auto', paddingTop: '1rem',
         borderTop: '1px solid #1e293b',
@@ -114,14 +143,15 @@ export default function Sidebar() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '11px', fontWeight: 700, color: 'white',
           boxShadow: '0 2px 8px rgba(59,130,246,0.3)',
-        }}>AA</div>
+        }}>{initials}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Aryan Assit</p>
-          <button onClick={handleLogout} style={{ background: 'none', border: 'none', padding: 0, fontSize: '11px', color: '#475569', cursor: 'pointer', transition: 'color 0.15s' }}
+          <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</p>
+          <button
+            onClick={handleLogout}
+            style={{ background: 'none', border: 'none', padding: 0, fontSize: '11px', color: '#475569', cursor: 'pointer', transition: 'color 0.15s' }}
             onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#475569')}>
-            Sign out
-          </button>
+            onMouseLeave={e => (e.currentTarget.style.color = '#475569')}
+          >Sign out</button>
         </div>
       </div>
     </aside>
