@@ -229,32 +229,6 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Live mock preview card — floats */}
-          <div className="hero-mock fade4" style={{ animationDelay: '0.6s' }}>
-            <div className="hero-mock-inner">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }} />
-                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }} />
-                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }} />
-                <span style={{ marginLeft: '8px', fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>mockstar.app/interview</span>
-              </div>
-              <div style={{ display: 'flex', gap: '16px', alignItems: 'center', textAlign: 'left' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '10px', color: '#AFA9EC', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Current question</div>
-                  <div style={{ fontSize: '15px', color: '#fff', lineHeight: 1.5, marginBottom: '14px' }}>"Walk me through a project where you integrated two ML models together."</div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {[78, 65, 71].map((v, i) => (
-                      <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '8px 10px', border: '0.5px solid rgba(255,255,255,0.08)' }}>
-                        <div className="mini-bar-fill" style={{ '--target': `${v}%`, animationDelay: `${0.9 + i * 0.15}s` } as React.CSSProperties} />
-                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>{['Speech','Eye contact','Posture'][i]}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="hero-pulse-ring" style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #534AB7, #6F66D6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '24px' }}>🎙️</div>
-              </div>
-            </div>
-          </div>
         </section>
 
         {/* ── HOW IT WORKS ── */}
