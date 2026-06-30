@@ -160,9 +160,7 @@ export default function Home() {
             <button onClick={() => document.getElementById('auth-card')?.scrollIntoView({ behavior: 'smooth' })} className="btn-purple" style={{ width: 'auto', padding: '13px 28px', fontSize: '15px' }}>
               Start for free →
             </button>
-            <button style={{ padding: '13px 24px', background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '12px', color: 'rgba(255,255,255,0.7)', fontSize: '15px', cursor: 'pointer' }}>
-              Watch demo ▷
-            </button>
+           
           </div>
         </section>
 
