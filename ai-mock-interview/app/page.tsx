@@ -13,7 +13,18 @@ export default function Home() {
   const [mode, setMode] = useState<'google' | 'email'>('google');
   const [authType, setAuthType] = useState<'login' | 'register'>('login');
   const [mounted, setMounted] = useState(false);
+  const [mouseX, setMouseX] = useState(0);
+  const [mouseY, setMouseY] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      setMouseX((e.clientX / window.innerWidth - 0.5) * 2);
+      setMouseY((e.clientY / window.innerHeight - 0.5) * 2);
+    };
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -112,6 +123,30 @@ export default function Home() {
         .tab { flex:1; padding:8px; border-radius:8px; border:none; font-size:13px; font-weight:500; cursor:pointer; transition:all 0.15s; }
         .stat-num { font-size:28px; font-weight:600; color:#fff; letter-spacing:-1px; }
         .link-btn { background:none; border:none; color:#AFA9EC; font-size:13px; cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+
+        /* ── Hero animations ── */
+        @keyframes wordReveal { from { opacity:0; transform:translateY(24px) rotateX(-40deg); } to { opacity:1; transform:translateY(0) rotateX(0); } }
+        .word-reveal { display:inline-block; animation: wordReveal 0.7s cubic-bezier(0.22,1,0.36,1) both; transform-origin: bottom; }
+        @keyframes gradientFlow { 0%,100% { background-position:0% 50%; } 50% { background-position:100% 50%; } }
+        .gradient-flow { background:linear-gradient(110deg,#AFA9EC 0%,#fff 25%,#534AB7 50%,#AFA9EC 75%,#fff 100%); background-size:300% 100%; -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation: gradientFlow 5s ease infinite; }
+
+        @keyframes shimmerSweep { 0% { transform:translateX(-120%); } 100% { transform:translateX(220%); } }
+        .badge-shimmer::after { content:''; position:absolute; top:0; left:0; width:40%; height:100%; background:linear-gradient(90deg, transparent, rgba(175,169,236,0.35), transparent); animation: shimmerSweep 3s ease-in-out infinite; }
+
+        .btn-hero-glow { position:relative; box-shadow:0 0 0 rgba(83,74,183,0.5); transition: box-shadow 0.3s ease, transform 0.15s ease; }
+        .btn-hero-glow:hover { box-shadow:0 8px 30px rgba(83,74,183,0.55); transform:translateY(-2px); }
+
+        .stat-chip { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.03); border:0.5px solid rgba(255,255,255,0.08); border-radius:99px; padding:8px 16px; animation: fadeup 0.6s ease both, float 4s ease-in-out infinite; animation-delay: inherit; }
+
+        .hero-mock { max-width:620px; margin:0 auto; animation: fadeup 0.7s ease both; perspective: 1000px; }
+        .hero-mock-inner { background:rgba(255,255,255,0.025); border:0.5px solid rgba(255,255,255,0.1); border-radius:20px; padding:22px 24px; backdrop-filter: blur(10px); box-shadow: 0 30px 80px -20px rgba(83,74,183,0.35); animation: heroFloat 6s ease-in-out infinite; }
+        @keyframes heroFloat { 0%,100% { transform: translateY(0) rotateX(0deg); } 50% { transform: translateY(-8px) rotateX(1deg); } }
+
+        @keyframes ringPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(83,74,183,0.5); } 50% { box-shadow: 0 0 0 10px rgba(83,74,183,0); } }
+        .hero-pulse-ring { animation: ringPulse 2.4s ease-in-out infinite; }
+
+        @keyframes barFill { from { width:0%; } to { width:var(--target); } }
+        .mini-bar-fill { height:4px; border-radius:2px; background:linear-gradient(90deg,#534AB7,#AFA9EC); width:0%; animation: barFill 1s cubic-bezier(0.22,1,0.36,1) forwards; }
       `}</style>
 
       {/* Particle canvas */}
@@ -142,25 +177,83 @@ export default function Home() {
       <div style={{ position: 'relative', zIndex: 1 }}>
 
         {/* ── HERO ── */}
-        <section style={{ maxWidth: '900px', margin: '0 auto', padding: '80px 32px 60px', textAlign: 'center' }}>
-          <div className="fade1" style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(83,74,183,0.12)', border: '0.5px solid rgba(83,74,183,0.3)', borderRadius: '20px', padding: '6px 16px', marginBottom: '32px' }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#534AB7', animation: 'glow 2s ease-in-out infinite' }} />
-            <span style={{ fontSize: '12px', color: '#AFA9EC', letterSpacing: '0.3px' }}>AI-powered interview coach</span>
+        <section style={{ maxWidth: '980px', margin: '0 auto', padding: '90px 32px 70px', textAlign: 'center', position: 'relative' }}>
+
+          {/* Mouse-reactive glow orbs */}
+          <div style={{
+            position: 'absolute', top: '-60px', left: '50%', width: '600px', height: '600px',
+            transform: `translate(calc(-50% + ${mouseX * 18}px), ${mouseY * 14}px)`,
+            background: 'radial-gradient(circle, rgba(83,74,183,0.18) 0%, transparent 60%)',
+            pointerEvents: 'none', zIndex: -1, transition: 'transform 0.3s ease-out',
+          }} />
+
+          {/* Badge — shimmer */}
+          <div className="fade1 badge-shimmer" style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(83,74,183,0.12)', border: '0.5px solid rgba(83,74,183,0.35)', borderRadius: '20px', padding: '6px 16px', marginBottom: '28px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#534AB7', animation: 'glow 2s ease-in-out infinite', boxShadow: '0 0 8px #534AB7' }} />
+            <span style={{ fontSize: '12px', color: '#AFA9EC', letterSpacing: '0.3px', position: 'relative', zIndex: 1 }}>AI-powered interview coach</span>
           </div>
 
-          <h1 className="fade2" style={{ fontSize: 'clamp(36px, 6vw, 64px)', fontWeight: '700', lineHeight: 1.1, letterSpacing: '-2px', margin: '0 0 20px', background: 'linear-gradient(135deg, #fff 60%, #AFA9EC 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Stop winging it.<br />Start acing it.
+          {/* Headline — word-by-word reveal */}
+          <h1 style={{ fontSize: 'clamp(38px, 6.5vw, 68px)', fontWeight: '700', lineHeight: 1.08, letterSpacing: '-2.2px', margin: '0 0 22px' }}>
+            <span className="word-reveal" style={{ animationDelay: '0.05s' }}>Stop</span>{' '}
+            <span className="word-reveal" style={{ animationDelay: '0.13s' }}>winging</span>{' '}
+            <span className="word-reveal" style={{ animationDelay: '0.21s' }}>it.</span>
+            <br />
+            <span className="word-reveal gradient-flow" style={{ animationDelay: '0.32s' }}>Start</span>{' '}
+            <span className="word-reveal gradient-flow" style={{ animationDelay: '0.40s' }}>acing</span>{' '}
+            <span className="word-reveal gradient-flow" style={{ animationDelay: '0.48s' }}>it.</span>
           </h1>
 
-          <p className="fade3" style={{ fontSize: '17px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.7, maxWidth: '500px', margin: '0 auto 40px' }}>
+          <p className="fade3" style={{ fontSize: '17px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.7, maxWidth: '520px', margin: '0 auto 38px' }}>
             Upload your resume. Get 5 tailored questions. Answer on camera. Get scored on content, eye contact, and posture — instantly.
           </p>
 
-          <div className="fade4" style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={() => document.getElementById('auth-card')?.scrollIntoView({ behavior: 'smooth' })} className="btn-purple" style={{ width: 'auto', padding: '13px 28px', fontSize: '15px' }}>
+          <div className="fade4" style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '52px' }}>
+            <button onClick={() => document.getElementById('auth-card')?.scrollIntoView({ behavior: 'smooth' })} className="btn-purple btn-hero-glow" style={{ width: 'auto', padding: '14px 30px', fontSize: '15px', fontWeight: 600 }}>
               Start for free →
             </button>
-           
+          </div>
+
+          {/* Floating stat chips */}
+          <div className="fade4" style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap', marginBottom: '56px' }}>
+            {[
+              { label: 'Questions per session', value: '5', icon: '❓' },
+              { label: 'Skills scored', value: '3', icon: '📊' },
+              { label: 'Avg. session time', value: '~15 min', icon: '⏱' },
+            ].map((c, i) => (
+              <div key={c.label} className="stat-chip" style={{ animationDelay: `${0.5 + i * 0.1}s` }}>
+                <span style={{ fontSize: '14px' }}>{c.icon}</span>
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>{c.value}</span>
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>{c.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Live mock preview card — floats */}
+          <div className="hero-mock fade4" style={{ animationDelay: '0.6s' }}>
+            <div className="hero-mock-inner">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }} />
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }} />
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }} />
+                <span style={{ marginLeft: '8px', fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>mockstar.app/interview</span>
+              </div>
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'center', textAlign: 'left' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '10px', color: '#AFA9EC', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Current question</div>
+                  <div style={{ fontSize: '15px', color: '#fff', lineHeight: 1.5, marginBottom: '14px' }}>"Walk me through a project where you integrated two ML models together."</div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {[78, 65, 71].map((v, i) => (
+                      <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '8px 10px', border: '0.5px solid rgba(255,255,255,0.08)' }}>
+                        <div className="mini-bar-fill" style={{ '--target': `${v}%`, animationDelay: `${0.9 + i * 0.15}s` } as React.CSSProperties} />
+                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>{['Speech','Eye contact','Posture'][i]}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="hero-pulse-ring" style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #534AB7, #6F66D6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '24px' }}>🎙️</div>
+              </div>
+            </div>
           </div>
         </section>
 
