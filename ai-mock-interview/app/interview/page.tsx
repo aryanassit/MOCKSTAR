@@ -202,6 +202,30 @@ export default function InterviewRoom() {
       const data = await response.json();
       setFinalScores(data);
 
+      // ── Save session to Supabase ────────────────────────────
+      const overall = Math.round(
+        (data.content_score ?? 0) * 0.6 +
+        (data.eye_contact_score ?? 0) * 0.2 +
+        (data.posture_score ?? 0) * 0.2
+      );
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await supabase.from('interview_sessions').insert({
+          user_id:           session.user.id,
+          overall_score:     overall,
+          speech_score:      data.content_score     ?? 0,
+          eye_contact_score: data.eye_contact_score ?? 0,
+          posture_score:     data.posture_score     ?? 0,
+          feedback:          data.feedback          ?? '',
+          questions:         aiQuestions.map((q, i) => ({
+            text:  q,
+            score: Math.round(data.content_score ?? 70),
+          })),
+        });
+      }
+      // ────────────────────────────────────────────────────────
+
     } catch (error) {
       console.error(error);
       alert("Failed to analyze interview.");
