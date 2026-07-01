@@ -105,7 +105,7 @@ export default function Home() {
         @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
         @keyframes slide-in { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
         .fade1 { animation: fadeup 0.6s ease both; }
-        .fade2 { animation: fadeup 0.6s 0.15s ease both; }
+        .fade2 { animation: fadeup 0.6s 0.15s ease both; } 
         .fade3 { animation: fadeup 0.6s 0.3s ease both; }
         .fade4 { animation: fadeup 0.6s 0.45s ease both; }
         .card-anim { animation: slide-in 0.4s ease both; }
