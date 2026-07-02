@@ -1,8 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0f172a;
-  --foreground: #f8fafc;
+  --background: #080f0d;
+  --foreground: #f0fdf4;
+  --accent:     #10b981;
+  --accent-dim: #059669;
+  --surface-1:  #0d1f1a;
+  --surface-2:  #122b23;
+  --border:     #1a3a2e;
+  --muted:      #4b7a66;
 }
 
 body {
@@ -31,8 +37,8 @@ body {
   100% { background-position:  200% 0; }
 }
 @keyframes borderGlow {
-  0%,100% { border-color: rgba(59,130,246,0.4); }
-  50%      { border-color: rgba(16,185,129,0.8); }
+  0%,100% { border-color: rgba(16,185,129,0.4); }
+  50%      { border-color: rgba(5,150,105,0.8); }
 }
 @keyframes slideDown {
   from { opacity: 0; transform: translateY(-8px); max-height: 0; }
@@ -83,8 +89,8 @@ body {
 }
 .card-hover:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.4);
-  border-color: rgba(59,130,246,0.4) !important;
+  box-shadow: 0 12px 40px rgba(16,185,129,0.15);
+  border-color: rgba(16,185,129,0.4) !important;
 }
 
 /* ── Button animations ────────────────────────────────────────── */
@@ -95,7 +101,7 @@ body {
 }
 .btn-glow:hover {
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 8px 30px rgba(59,130,246,0.4);
+  box-shadow: 0 8px 30px rgba(16,185,129,0.45);
   filter: brightness(1.1);
 }
 .btn-glow:active { transform: translateY(0) scale(0.98); }
@@ -112,7 +118,7 @@ body {
 
 /* ── Gradient animated text ───────────────────────────────────── */
 .gradient-text {
-  background: linear-gradient(135deg, #3b82f6, #10b981, #6366f1, #3b82f6);
+  background: linear-gradient(135deg, #10b981, #34d399, #059669, #10b981);
   background-size: 300% 300%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -122,7 +128,7 @@ body {
 
 /* ── Shimmer skeleton ─────────────────────────────────────────── */
 .skeleton {
-  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background: linear-gradient(90deg, #0d1f1a 25%, #122b23 50%, #0d1f1a 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 8px;
@@ -130,7 +136,7 @@ body {
 
 /* ── Glow ring ────────────────────────────────────────────────── */
 .ring-glow {
-  filter: drop-shadow(0 0 8px rgba(59,130,246,0.5));
+  filter: drop-shadow(0 0 8px rgba(16,185,129,0.5));
 }
 
 /* ── Floating orb background ──────────────────────────────────── */

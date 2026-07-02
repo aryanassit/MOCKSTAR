@@ -8,13 +8,13 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
     <div onClick={onToggle} role="switch" aria-checked={on} tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && onToggle()}
-      style={{ width: '36px', height: '20px', background: on ? '#3b82f6' : '#334155', borderRadius: '10px', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+      style={{ width: '36px', height: '20px', background: on ? '#10b981' : '#1a3a2e', borderRadius: '10px', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
       <div style={{ position: 'absolute', top: '3px', [on ? 'right' : 'left']: '3px', width: '14px', height: '14px', background: 'white', borderRadius: '50%', transition: 'left 0.2s, right 0.2s' }} />
     </div>
   );
 }
 
-const card = { background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '1.25rem' };
+const card = { background: '#0d1f1a', border: '1px solid #1a3a2e', borderRadius: '16px', padding: '1.25rem' };
 const scoreColor = (v: number) => v >= 75 ? '#10b981' : v >= 50 ? '#f59e0b' : '#ef4444';
 
 export default function Profile() {
@@ -97,17 +97,17 @@ export default function Profile() {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80vh' }}>
-      <div style={{ width: '36px', height: '36px', border: '3px solid #1e293b', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ width: '36px', height: '36px', border: '3px solid #0d1f1a', borderTopColor: '#10b981', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
     </div>
   );
 
   const initials = displayName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '??';
 
   const skillBars = [
-    { label: 'Average score',    value: avgScores.overall, color: '#3b82f6' },
+    { label: 'Average score',    value: avgScores.overall, color: '#10b981' },
     { label: 'Avg speech',       value: avgScores.speech,  color: '#10b981' },
     { label: 'Avg eye contact',  value: avgScores.eye,     color: '#f59e0b' },
-    { label: 'Avg posture',      value: avgScores.posture, color: '#3b82f6' },
+    { label: 'Avg posture',      value: avgScores.posture, color: '#10b981' },
   ];
 
   return (
@@ -121,36 +121,36 @@ export default function Profile() {
           {/* Identity */}
           <div style={card} className="card-hover">
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
-              <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', backgroundSize: '200% 200%', animation: 'gradientShift 5s ease infinite', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 700, color: 'white', flexShrink: 0, boxShadow: '0 4px 14px rgba(59,130,246,0.3)' }}>{initials}</div>
+              <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', backgroundSize: '200% 200%', animation: 'gradientShift 5s ease infinite', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 700, color: 'white', flexShrink: 0, boxShadow: '0 4px 14px rgba(16,185,129,0.3)' }}>{initials}</div>
               <div>
                 {editingName ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <input autoFocus value={draftName} onChange={e => setDraftName(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false); }}
-                      style={{ border: 'none', borderBottom: '1.5px solid #3b82f6', background: 'none', fontSize: '15px', fontWeight: 600, outline: 'none', color: '#f8fafc', padding: '1px 3px', width: '140px' }} />
-                    <button onClick={saveName} style={{ fontSize: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer' }}>Save</button>
-                    <button onClick={() => setEditingName(false)} style={{ fontSize: '12px', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>✕</button>
+                      style={{ border: 'none', borderBottom: '1.5px solid #10b981', background: 'none', fontSize: '15px', fontWeight: 600, outline: 'none', color: '#f8fafc', padding: '1px 3px', width: '140px' }} />
+                    <button onClick={saveName} style={{ fontSize: '12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer' }}>Save</button>
+                    <button onClick={() => setEditingName(false)} style={{ fontSize: '12px', background: 'none', border: 'none', color: '#4b7a66', cursor: 'pointer' }}>✕</button>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontSize: '16px', fontWeight: 600, color: '#f8fafc' }}>{displayName}</span>
-                    <button onClick={() => { setEditingName(true); setDraftName(displayName); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '2px', fontSize: '13px', transition: 'color 0.15s' }}
-                      onMouseEnter={e => (e.currentTarget.style.color = '#60a5fa')}
-                      onMouseLeave={e => (e.currentTarget.style.color = '#64748b')}>✎</button>
+                    <button onClick={() => { setEditingName(true); setDraftName(displayName); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4b7a66', padding: '2px', fontSize: '13px', transition: 'color 0.15s' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#34d399')}
+                      onMouseLeave={e => (e.currentTarget.style.color = '#4b7a66')}>✎</button>
                   </div>
                 )}
-                <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b' }}>{email}</p>
+                <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#4b7a66' }}>{email}</p>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: '#334155', borderRadius: '10px', overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: '#1a3a2e', borderRadius: '10px', overflow: 'hidden' }}>
               {[
                 { label: 'Member since',  value: memberSince || '—' },
                 { label: 'Plan',          value: 'Free' },
                 { label: 'Interviews',    value: String(sessionCount) },
                 { label: 'Best skill',    value: sessionCount > 0 ? (avgScores.speech >= avgScores.eye && avgScores.speech >= avgScores.posture ? 'Speech' : avgScores.posture >= avgScores.eye ? 'Posture' : 'Eye contact') : '—' },
               ].map(({ label, value }) => (
-                <div key={label} style={{ background: '#0f172a', padding: '10px 12px' }}>
-                  <p style={{ margin: 0, fontSize: '10px', color: '#64748b' }}>{label}</p>
+                <div key={label} style={{ background: '#080f0d', padding: '10px 12px' }}>
+                  <p style={{ margin: 0, fontSize: '10px', color: '#4b7a66' }}>{label}</p>
                   <p style={{ margin: '2px 0 0', fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>{value}</p>
                 </div>
               ))}
@@ -169,9 +169,9 @@ export default function Profile() {
                 <button onClick={() => router.push('/upload')} style={{ fontSize: '11px', background: 'none', border: '1px solid #10b981', borderRadius: '6px', padding: '3px 8px', color: '#10b981', cursor: 'pointer' }}>Update</button>
               </div>
             ) : (
-              <div style={{ textAlign: 'center', padding: '1.5rem', border: '1px dashed #334155', borderRadius: '10px' }}>
-                <p style={{ margin: '0 0 10px', fontSize: '13px', color: '#64748b' }}>No resume uploaded yet</p>
-                <button onClick={() => router.push('/upload')} className="btn-glow" style={{ background: 'linear-gradient(135deg, #3b82f6, #10b981)', backgroundSize: '200% 200%', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}>Upload resume</button>
+              <div style={{ textAlign: 'center', padding: '1.5rem', border: '1px dashed #1a3a2e', borderRadius: '10px' }}>
+                <p style={{ margin: '0 0 10px', fontSize: '13px', color: '#4b7a66' }}>No resume uploaded yet</p>
+                <button onClick={() => router.push('/upload')} className="btn-glow" style={{ background: 'linear-gradient(135deg, #10b981, #059669)', backgroundSize: '200% 200%', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}>Upload resume</button>
               </div>
             )}
           </div>
@@ -186,7 +186,7 @@ export default function Profile() {
               <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                 <div>
                   <p style={{ margin: 0, fontSize: '13px', color: '#f8fafc' }}>{label}</p>
-                  <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>{sub}</p>
+                  <p style={{ margin: 0, fontSize: '11px', color: '#4b7a66' }}>{sub}</p>
                 </div>
                 <Toggle on={on} onToggle={toggle} />
               </div>
@@ -201,7 +201,7 @@ export default function Profile() {
           <div style={card} className="card-hover">
             <p style={{ margin: '0 0 14px', fontSize: '14px', fontWeight: 600, color: '#f8fafc' }}>Performance summary</p>
             {sessionCount === 0 ? (
-              <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', padding: '1rem 0' }}>Complete an interview to see your stats here.</p>
+              <p style={{ fontSize: '13px', color: '#4b7a66', textAlign: 'center', padding: '1rem 0' }}>Complete an interview to see your stats here.</p>
             ) : (
               skillBars.map(({ label, value, color }) => (
                 <div key={label} style={{ marginBottom: '12px' }}>
@@ -209,7 +209,7 @@ export default function Profile() {
                     <span style={{ fontSize: '12px', color: '#94a3b8' }}>{label}</span>
                     <span style={{ fontSize: '12px', fontWeight: 600, color: scoreColor(value) }}>{value}%</span>
                   </div>
-                  <div style={{ background: '#0f172a', borderRadius: '3px', height: '6px' }}>
+                  <div style={{ background: '#080f0d', borderRadius: '3px', height: '6px' }}>
                     <div style={{ width: `${value}%`, height: '6px', background: color, borderRadius: '3px', transition: 'width 1s ease', boxShadow: `0 0 6px ${color}55` }} />
                   </div>
                 </div>
@@ -221,7 +221,7 @@ export default function Profile() {
           <div style={card}>
             <p style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 600, color: '#f8fafc' }}>Improvement areas</p>
             {sessionCount === 0 ? (
-              <p style={{ fontSize: '13px', color: '#64748b' }}>No data yet — complete an interview first.</p>
+              <p style={{ fontSize: '13px', color: '#4b7a66' }}>No data yet — complete an interview first.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '10px' }}>
@@ -237,11 +237,11 @@ export default function Profile() {
                     </p>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: '#0f172a', border: '1px solid #334155', borderRadius: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: '#080f0d', border: '1px solid #1a3a2e', borderRadius: '10px' }}>
                   <span style={{ fontSize: '18px', flexShrink: 0 }}>📋</span>
                   <div>
                     <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#f8fafc' }}>Answer structure</p>
-                    <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>Use STAR method for behavioral questions</p>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#4b7a66' }}>Use STAR method for behavioral questions</p>
                   </div>
                 </div>
               </div>
@@ -251,7 +251,7 @@ export default function Profile() {
           {/* Danger zone */}
           <div style={{ ...card, borderLeft: '3px solid #ef4444' }}>
             <p style={{ margin: '0 0 8px', fontSize: '14px', fontWeight: 600, color: '#f8fafc' }}>Danger zone</p>
-            <p style={{ margin: '0 0 12px', fontSize: '12px', color: '#64748b' }}>Deleting your account removes all sessions, scores, and history permanently.</p>
+            <p style={{ margin: '0 0 12px', fontSize: '12px', color: '#4b7a66' }}>Deleting your account removes all sessions, scores, and history permanently.</p>
             <button onClick={handleDelete} style={{ fontSize: '13px', background: 'none', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer', transition: 'all 0.15s' }}
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}>
