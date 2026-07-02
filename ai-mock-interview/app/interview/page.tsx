@@ -186,45 +186,44 @@ export default function InterviewRoom() {
   const analyzeFinalResults = async () => {
     setIsAnalyzing(true);
     try {
-      const lastVideoUrl = videoUrlsRef.current[videoUrlsRef.current.length - 1];
-      const lastQuestion = aiQuestions[aiQuestions.length - 1]; // Grab the question!
-      
+      // 1. Send ALL videos and ALL questions to the Python Backend
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}/analyze-video`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          video_url: lastVideoUrl,
-          question: lastQuestion // Send it to Python!
+          video_urls: videoUrlsRef.current, // Array of all 5 video URLs
+          questions: aiQuestions            // Array of all 5 questions
         })
       });
 
-      if (!response.ok) throw new Error("Failed to analyze video");
+      if (!response.ok) throw new Error("Failed to analyze video batch");
       const data = await response.json();
       setFinalScores(data);
 
-      // ── Save session to Supabase ────────────────────────────
+      // 2. Calculate the weighted overall score
       const overall = Math.round(
         (data.content_score ?? 0) * 0.6 +
         (data.eye_contact_score ?? 0) * 0.2 +
         (data.posture_score ?? 0) * 0.2
       );
 
+      // 3. Save the exact session history to Supabase Database
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         await supabase.from('interview_sessions').insert({
           user_id:           session.user.id,
           overall_score:     overall,
-          speech_score:      data.content_score     ?? 0,
+          speech_score:      data.content_score ?? 0,
           eye_contact_score: data.eye_contact_score ?? 0,
-          posture_score:     data.posture_score     ?? 0,
-          feedback:          data.feedback          ?? '',
+          posture_score:     data.posture_score ?? 0,
+          feedback:          data.feedback ?? 'Great effort! Focus on structuring your answers using the STAR method.',
+          // Map real scores if backend provides them, otherwise fallback to the average
           questions:         aiQuestions.map((q, i) => ({
             text:  q,
-            score: Math.round(data.content_score ?? 70),
+            score: data.individual_scores ? data.individual_scores[i] : Math.round(data.content_score ?? 70),
           })),
         });
       }
-      // ────────────────────────────────────────────────────────
 
     } catch (error) {
       console.error(error);
