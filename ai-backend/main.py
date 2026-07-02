@@ -7,7 +7,7 @@ import json
 import time
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from models.schemas import ResumeRequest, VideoRequest
 from dotenv import load_dotenv
 
 # Use the modern, official Google GenAI SDK instead of the legacy generativeai wrapper
@@ -42,12 +42,6 @@ try:
 except Exception:
     print("⚠️ MediaPipe unavailable on this server environment. Using Headless OpenCV Face AI Engine.")
 
-class ResumeRequest(BaseModel):
-    resume_url: str
-
-class VideoRequest(BaseModel):
-    video_url: str
-    question: str
 
 @app.get("/")
 def read_root():
