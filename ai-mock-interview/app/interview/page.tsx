@@ -238,10 +238,10 @@ export default function InterviewRoom() {
   // 1. Initial Loading State
   if (isInitializing) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a', color: '#fff' }}>
-        <div style={{ width: '50px', height: '50px', border: '4px solid #3b82f6', borderTop: '4px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '20px' }} />
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#080f0d', color: '#fff' }}>
+        <div style={{ width: '50px', height: '50px', border: '4px solid #10b981', borderTop: '4px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '20px' }} />
         <h2 style={{ margin: 0 }}>AI is reading your resume...</h2>
-        <p style={{ color: '#94a3b8' }}>Generating custom interview questions</p>
+        <p style={{ color: '#6b9e88' }}>Generating custom interview questions</p>
         <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -250,45 +250,45 @@ export default function InterviewRoom() {
   // 2. Final Results State (NEW)
   if (isInterviewComplete) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a', color: '#fff', fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#080f0d', color: '#fff', fontFamily: 'system-ui, sans-serif' }}>
         {isAnalyzing ? (
           <div style={{ textAlign: 'center' }}>
              <div style={{ width: '60px', height: '60px', border: '5px solid #10b981', borderTop: '5px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px auto' }} />
              <h2 style={{ color: '#f8fafc', fontSize: '24px' }}>AI is analyzing your body language...</h2>
-             <p style={{ color: '#94a3b8' }}>Running Computer Vision models</p>
+             <p style={{ color: '#6b9e88' }}>Running Computer Vision models</p>
           </div>
         ) : (
-          <div style={{ backgroundColor: '#1e293b', padding: '50px', borderRadius: '24px', maxWidth: '600px', width: '100%', textAlign: 'center', border: '1px solid #334155', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+          <div style={{ backgroundColor: '#0d1f1a', padding: '50px', borderRadius: '24px', maxWidth: '600px', width: '100%', textAlign: 'center', border: '1px solid #1a3a2e', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
             <div style={{ backgroundColor: '#064e3b', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px auto', fontSize: '36px' }}>🎉</div>
             <h2 style={{ margin: '0 0 10px 0', fontSize: '32px', color: '#f8fafc' }}>Interview Complete</h2>
-            <p style={{ color: '#94a3b8', marginBottom: '40px' }}>Your Non-Verbal Communication Score</p>
+            <p style={{ color: '#6b9e88', marginBottom: '40px' }}>Your Non-Verbal Communication Score</p>
             
             <h2 style={{ margin: '0 0 10px 0', fontSize: '32px', color: '#f8fafc' }}>Interview Complete</h2>
-            <p style={{ color: '#94a3b8', marginBottom: '40px' }}>Your AI Performance Review</p>
+            <p style={{ color: '#6b9e88', marginBottom: '40px' }}>Your AI Performance Review</p>
             
             {/* NEW: Speech Content Score */}
-            <div style={{ backgroundColor: '#0f172a', padding: '20px', borderRadius: '16px', border: '1px solid #3b82f6', marginBottom: '20px' }}>
-              <div style={{ fontSize: '14px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Answer Quality (Speech)</div>
-              <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#3b82f6' }}>{finalScores?.content_score}%</div>
+            <div style={{ backgroundColor: '#080f0d', padding: '20px', borderRadius: '16px', border: '1px solid #10b981', marginBottom: '20px' }}>
+              <div style={{ fontSize: '14px', color: '#6b9e88', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Answer Quality (Speech)</div>
+              <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#10b981' }}>{finalScores?.content_score}%</div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', marginBottom: '40px' }}>
-              <div style={{ flex: 1, backgroundColor: '#0f172a', padding: '20px', borderRadius: '16px', border: '1px solid #334155' }}>
-                <div style={{ fontSize: '14px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Eye Contact</div>
+              <div style={{ flex: 1, backgroundColor: '#080f0d', padding: '20px', borderRadius: '16px', border: '1px solid #1a3a2e' }}>
+                <div style={{ fontSize: '14px', color: '#6b9e88', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Eye Contact</div>
                 <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#10b981' }}>{finalScores?.eye_contact_score}%</div>
               </div>
-              <div style={{ flex: 1, backgroundColor: '#0f172a', padding: '20px', borderRadius: '16px', border: '1px solid #334155' }}>
-                <div style={{ fontSize: '14px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Posture</div>
+              <div style={{ flex: 1, backgroundColor: '#080f0d', padding: '20px', borderRadius: '16px', border: '1px solid #1a3a2e' }}>
+                <div style={{ fontSize: '14px', color: '#6b9e88', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Posture</div>
                 <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#10b981' }}>{finalScores?.posture_score}%</div>
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#0f172a', padding: '20px', borderRadius: '12px', borderLeft: '4px solid #f59e0b', textAlign: 'left', marginBottom: '30px' }}>
+            <div style={{ backgroundColor: '#080f0d', padding: '20px', borderRadius: '12px', borderLeft: '4px solid #f59e0b', textAlign: 'left', marginBottom: '30px' }}>
               <h4 style={{ margin: '0 0 5px 0', color: '#f8fafc' }}>AI Feedback</h4>
               <p style={{ margin: 0, color: '#cbd5e1' }}>{finalScores?.feedback}</p>
             </div>
 
-            <button onClick={() => router.push('/dashboard')} style={{ width: '100%', padding: '16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '12px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer' }}>
+            <button onClick={() => router.push('/dashboard')} style={{ width: '100%', padding: '16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '12px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer' }}>
               Return to Dashboard
             </button>
           </div>
@@ -299,11 +299,11 @@ export default function InterviewRoom() {
 
   // 3. The Active Interview Room State
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0f172a', color: '#fff', padding: '40px 20px', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#080f0d', color: '#fff', padding: '40px 20px', fontFamily: 'system-ui, sans-serif' }}>
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155', paddingBottom: '15px', marginBottom: '30px', maxWidth: '1200px', margin: '0 auto 30px auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1a3a2e', paddingBottom: '15px', marginBottom: '30px', maxWidth: '1200px', margin: '0 auto 30px auto' }}>
         <h2 style={{ margin: 0, color: '#f8fafc' }}>Technical Interview</h2>
-        <div style={{ backgroundColor: '#1e293b', padding: '8px 16px', borderRadius: '20px', fontSize: '14px', border: '1px solid #334155' }}>
+        <div style={{ backgroundColor: '#0d1f1a', padding: '8px 16px', borderRadius: '20px', fontSize: '14px', border: '1px solid #1a3a2e' }}>
           Question {currentQuestionIndex + 1} of {aiQuestions.length}
         </div>
       </div>
@@ -311,12 +311,12 @@ export default function InterviewRoom() {
       <div style={{ display: 'flex', gap: '40px', maxWidth: '1200px', margin: '0 auto' }}>
         
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <h3 style={{ color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '14px', fontWeight: 'bold' }}>Current AI Question:</h3>
+          <h3 style={{ color: '#10b981', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '14px', fontWeight: 'bold' }}>Current AI Question:</h3>
           <p style={{ fontSize: '28px', lineHeight: '1.4', fontWeight: '600', color: '#f8fafc', minHeight: '120px' }}>
             "{aiQuestions[currentQuestionIndex]}"
           </p>
           
-          <div style={{ marginTop: '30px', padding: '25px', backgroundColor: '#1e293b', borderRadius: '12px', borderLeft: isRecording ? (isSpeaking ? '5px solid #10b981' : '5px solid #f59e0b') : '5px solid #3b82f6', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3)' }}>
+          <div style={{ marginTop: '30px', padding: '25px', backgroundColor: '#0d1f1a', borderRadius: '12px', borderLeft: isRecording ? (isSpeaking ? '5px solid #10b981' : '5px solid #f59e0b') : '5px solid #10b981', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3)' }}>
             
             {isProcessingVideo ? (
                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -326,7 +326,7 @@ export default function InterviewRoom() {
             ) : !isRecording ? (
               <div>
                 <h4 style={{ margin: '0 0 15px 0', fontSize: '18px' }}>Ready for this question?</h4>
-                <button onClick={startRecordingAnswer} style={{ padding: '12px 24px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}>
+                <button onClick={startRecordingAnswer} style={{ padding: '12px 24px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}>
                   Start Recording Answer
                 </button>
               </div>
@@ -339,7 +339,7 @@ export default function InterviewRoom() {
                     <><span style={{ display: 'inline-block', width: '14px', height: '14px', backgroundColor: '#f59e0b', borderRadius: '50%' }}></span> Silence Detected (Saving in 3s)...</>
                   )}
                 </h4>
-                <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>
+                <p style={{ color: '#6b9e88', fontSize: '14px', margin: 0 }}>
                   (Stop talking when finished. The AI handles the rest.)
                 </p>
               </div>
@@ -348,9 +348,9 @@ export default function InterviewRoom() {
         </div>
 
         <div style={{ flex: 1 }}>
-          <div style={{ backgroundColor: '#000', borderRadius: '16px', overflow: 'hidden', position: 'relative', border: '2px solid #334155', aspectRatio: '16/9', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)' }}>
+          <div style={{ backgroundColor: '#000', borderRadius: '16px', overflow: 'hidden', position: 'relative', border: '2px solid #1a3a2e', aspectRatio: '16/9', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)' }}>
             {!hasCameraAccess && (
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4b7a66' }}>
                 Activating secure camera feed...
               </div>
             )}
