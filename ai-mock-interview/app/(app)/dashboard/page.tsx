@@ -127,7 +127,7 @@ export default function Dashboard() {
       )}
 
       {sessions.length === 0 ? (
-        <div className={mounted?'anim-scale-in d-200':''} style={{ textAlign:'center', padding:'4rem 2rem', ...card, opacity:mounted?undefined:0 }}>
+        <div className={mounted?'anim-scale-in d-200':''} style={{ textAlign:'center', ...card, padding:'4rem 2rem', opacity:mounted?undefined:0 }}>
           <div style={{ fontSize:'48px', marginBottom:'16px', animation:'float 4s ease-in-out infinite' }}>🎯</div>
           <h2 style={{ margin:'0 0 8px', fontSize:'20px', fontWeight:700, color:'#f8fafc' }}>No interviews yet</h2>
           <p style={{ margin:'0 0 24px', fontSize:'14px', color:'#6b8f6b', lineHeight:1.6 }}>Complete your first mock interview to see scores and history here.</p>
