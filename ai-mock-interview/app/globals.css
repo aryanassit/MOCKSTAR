@@ -1,99 +1,73 @@
 @import "tailwindcss";
 
 :root {
-  --background: #080f0d;
-  --foreground: #f0fdf4;
-  --accent:     #10b981;
-  --accent-dim: #059669;
-  --surface-1:  #0d1f1a;
-  --surface-2:  #122b23;
-  --border:     #1a3a2e;
-  --muted:      #4b7a66;
+  --bg-deep:     #050f05;
+  --bg-card:     #0d1a0d;
+  --bg-raised:   #122012;
+  --border:      #1e3a1e;
+  --border-hi:   #2d5a2d;
+  --green:       #16a34a;
+  --green-hi:    #22c55e;
+  --green-glow:  rgba(22,163,74,0.35);
+  --green-dim:   rgba(22,163,74,0.12);
+  --white:       #f8fafc;
+  --muted:       #6b8f6b;
+  --muted-hi:    #9ab89a;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg-deep);
+  color: var(--white);
   font-family: system-ui, -apple-system, sans-serif;
 }
 
-/* ── Core keyframes ───────────────────────────────────────────── */
-@keyframes fadeInUp    { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-@keyframes fadeInLeft  { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
-@keyframes fadeInRight { from { opacity: 0; transform: translateX(18px);  } to { opacity: 1; transform: none; } }
-@keyframes scaleIn     { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
-@keyframes spin        { to   { transform: rotate(360deg); } }
-@keyframes spin-slow   { to   { transform: rotate(360deg); } }
-@keyframes pulse-glow  { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
-@keyframes float       { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-12px); } }
-@keyframes float2      { 0%,100% { transform: translateY(0px) translateX(0px); } 50% { transform: translateY(14px) translateX(-8px); } }
-@keyframes gradientShift {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position:  200% 0; }
-}
-@keyframes borderGlow {
-  0%,100% { border-color: rgba(16,185,129,0.4); }
-  50%      { border-color: rgba(5,150,105,0.8); }
-}
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-8px); max-height: 0; }
-  to   { opacity: 1; transform: none;             max-height: 600px; }
-}
-@keyframes popIn {
-  0%   { transform: scale(0.7); opacity: 0; }
-  70%  { transform: scale(1.08); }
-  100% { transform: scale(1); opacity: 1; }
-}
-@keyframes orb1 {
-  0%,100% { transform: translate(0px, 0px) scale(1); }
-  33%      { transform: translate(40px,-30px) scale(1.08); }
-  66%      { transform: translate(-20px, 20px) scale(0.95); }
-}
-@keyframes orb2 {
-  0%,100% { transform: translate(0px, 0px) scale(1); }
-  33%      { transform: translate(-35px, 25px) scale(1.05); }
-  66%      { transform: translate(25px, -15px) scale(0.97); }
-}
-@keyframes orb3 {
-  0%,100% { transform: translate(0px, 0px) scale(1); }
-  50%      { transform: translate(20px, 30px) scale(1.1); }
-}
+/* ── Keyframes ──────────────────────────────────────────────── */
+@keyframes fadeInUp    { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:none} }
+@keyframes fadeInLeft  { from{opacity:0;transform:translateX(-18px)} to{opacity:1;transform:none} }
+@keyframes fadeInRight { from{opacity:0;transform:translateX(18px)} to{opacity:1;transform:none} }
+@keyframes scaleIn     { from{opacity:0;transform:scale(0.94)} to{opacity:1;transform:scale(1)} }
+@keyframes popIn       { 0%{transform:scale(0.7);opacity:0} 70%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
+@keyframes spin        { to{transform:rotate(360deg)} }
+@keyframes gradientShift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+@keyframes shimmer     { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+@keyframes pulseDot    { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.45;transform:scale(0.8)} }
+@keyframes borderGlow  { 0%,100%{border-color:rgba(22,163,74,0.3)} 50%{border-color:rgba(34,197,94,0.7)} }
+@keyframes float       { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+@keyframes orb1        { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,-22px)} }
+@keyframes orb2        { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-24px,20px)} }
+@keyframes recordPulse { 0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,0.5)} 50%{box-shadow:0 0 0 10px rgba(22,163,74,0)} }
+@keyframes barFill     { from{width:0%} }
+@keyframes slideDown   { from{opacity:0;max-height:0} to{opacity:1;max-height:600px} }
+@keyframes pulseGlow   { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
-/* ── Utility animation classes ────────────────────────────────── */
-.anim-fade-up   { animation: fadeInUp   0.5s cubic-bezier(0.22,1,0.36,1) both; }
-.anim-fade-left { animation: fadeInLeft 0.5s cubic-bezier(0.22,1,0.36,1) both; }
-.anim-scale-in  { animation: scaleIn    0.4s cubic-bezier(0.22,1,0.36,1) both; }
-.anim-pop-in    { animation: popIn      0.5s cubic-bezier(0.22,1,0.36,1) both; }
+/* ── Utility classes ────────────────────────────────────────── */
+.anim-fade-up    { animation: fadeInUp    0.5s cubic-bezier(0.22,1,0.36,1) both; }
+.anim-fade-left  { animation: fadeInLeft  0.5s cubic-bezier(0.22,1,0.36,1) both; }
+.anim-fade-right { animation: fadeInRight 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+.anim-scale-in   { animation: scaleIn     0.4s cubic-bezier(0.22,1,0.36,1) both; }
+.anim-pop-in     { animation: popIn       0.5s cubic-bezier(0.22,1,0.36,1) both; }
 
-.d-0   { animation-delay: 0ms;   }
-.d-100 { animation-delay: 100ms; }
-.d-150 { animation-delay: 150ms; }
-.d-200 { animation-delay: 200ms; }
-.d-300 { animation-delay: 300ms; }
-.d-400 { animation-delay: 400ms; }
-.d-500 { animation-delay: 500ms; }
-.d-600 { animation-delay: 600ms; }
-.d-700 { animation-delay: 700ms; }
-.d-800 { animation-delay: 800ms; }
+.d-0   { animation-delay:0ms }
+.d-100 { animation-delay:100ms }
+.d-150 { animation-delay:150ms }
+.d-200 { animation-delay:200ms }
+.d-300 { animation-delay:300ms }
+.d-400 { animation-delay:400ms }
+.d-500 { animation-delay:500ms }
+.d-600 { animation-delay:600ms }
+.d-700 { animation-delay:700ms }
 
-/* ── Card hover lift ──────────────────────────────────────────── */
+/* ── Card ───────────────────────────────────────────────────── */
 .card-hover {
-  transition: transform 0.2s cubic-bezier(0.22,1,0.36,1),
-              box-shadow 0.2s ease,
-              border-color 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .card-hover:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 40px rgba(16,185,129,0.15);
-  border-color: rgba(16,185,129,0.4) !important;
+  box-shadow: 0 12px 40px rgba(22,163,74,0.15);
+  border-color: var(--border-hi) !important;
 }
 
-/* ── Button animations ────────────────────────────────────────── */
+/* ── Button ─────────────────────────────────────────────────── */
 .btn-glow {
   background-size: 200% 200%;
   animation: gradientShift 3s ease infinite;
@@ -101,24 +75,18 @@ body {
 }
 .btn-glow:hover {
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 8px 30px rgba(16,185,129,0.45);
-  filter: brightness(1.1);
+  box-shadow: 0 8px 28px var(--green-glow);
+  filter: brightness(1.08);
 }
 .btn-glow:active { transform: translateY(0) scale(0.98); }
 
-/* ── Nav item ─────────────────────────────────────────────────── */
-.nav-btn {
-  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease,
-              border-color 0.15s ease, box-shadow 0.15s ease;
-}
+/* ── Nav item ───────────────────────────────────────────────── */
+.nav-btn { transition: background 0.15s, color 0.15s, transform 0.15s, border-color 0.15s; }
 .nav-btn:hover { transform: translateX(3px); }
 
-/* ── Drop zone pulse ──────────────────────────────────────────── */
-.drop-idle { animation: borderGlow 3s ease infinite; }
-
-/* ── Gradient animated text ───────────────────────────────────── */
+/* ── Gradient text ──────────────────────────────────────────── */
 .gradient-text {
-  background: linear-gradient(135deg, #10b981, #34d399, #059669, #10b981);
+  background: linear-gradient(135deg, #22c55e, #ffffff, #16a34a, #22c55e);
   background-size: 300% 300%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -126,41 +94,22 @@ body {
   animation: gradientShift 4s ease infinite;
 }
 
-/* ── Shimmer skeleton ─────────────────────────────────────────── */
+/* ── Drop zone ──────────────────────────────────────────────── */
+.drop-idle { animation: borderGlow 3s ease infinite; }
+
+/* ── Orbs ───────────────────────────────────────────────────── */
+.orb { position:absolute; border-radius:50%; filter:blur(60px); pointer-events:none; }
+.orb-1 { animation: orb1 12s ease-in-out infinite; }
+.orb-2 { animation: orb2 15s ease-in-out infinite; }
+
+/* ── Shimmer ────────────────────────────────────────────────── */
 .skeleton {
-  background: linear-gradient(90deg, #0d1f1a 25%, #122b23 50%, #0d1f1a 75%);
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-raised) 50%, var(--bg-card) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 8px;
 }
 
-/* ── Glow ring ────────────────────────────────────────────────── */
-.ring-glow {
-  filter: drop-shadow(0 0 8px rgba(16,185,129,0.5));
-}
-
-/* ── Floating orb background ──────────────────────────────────── */
-.orb { position: absolute; border-radius: 50%; filter: blur(60px); pointer-events: none; }
-.orb-1 { animation: orb1 12s ease-in-out infinite; }
-.orb-2 { animation: orb2 15s ease-in-out infinite; }
-.orb-3 { animation: orb3 10s ease-in-out infinite; }
-
-/* ── History expand ───────────────────────────────────────────── */
-.expand-body {
-  overflow: hidden;
-  transition: max-height 0.35s cubic-bezier(0.22,1,0.36,1), opacity 0.3s ease;
-}
-
-/* ── Stat number ──────────────────────────────────────────────── */
-.stat-num {
-  font-variant-numeric: tabular-nums;
-  transition: color 0.3s ease;
-}
-
-/* ── Reduced motion ───────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
+  *, *::before, *::after { animation-duration:0.01ms !important; transition-duration:0.01ms !important; }
 }
