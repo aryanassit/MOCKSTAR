@@ -1,347 +1,330 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function Home() {
+export default function LandingPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [mode, setMode] = useState<'google' | 'email'>('google');
-  const [authType, setAuthType] = useState<'login' | 'register'>('login');
-  const [mounted, setMounted] = useState(false);
-  const [mouseX, setMouseX] = useState(0);
-  const [mouseY, setMouseY] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      setMouseX((e.clientX / window.innerWidth - 0.5) * 2);
-      setMouseY((e.clientY / window.innerHeight - 0.5) * 2);
-    };
-    window.addEventListener('mousemove', onMove);
-    return () => window.removeEventListener('mousemove', onMove);
-  }, []);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session) router.push('/dashboard');
-    });
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) router.push('/dashboard');
-    });
-    return () => subscription.unsubscribe();
-  }, [router]);
-
-  // Particle canvas
-  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    let W = canvas.width = window.innerWidth;
-    let H = canvas.height = window.innerHeight;
-    const onResize = () => { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; };
-    window.addEventListener('resize', onResize);
-    const dots: { x: number; y: number; vx: number; vy: number; r: number; o: number }[] = [];
-    for (let i = 0; i < 55; i++) dots.push({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3, r: Math.random() * 1.5 + 0.5, o: Math.random() * 0.4 + 0.1 });
-    let raf: number;
-    const draw = () => {
-      ctx.clearRect(0, 0, W, H);
-      dots.forEach(d => {
-        d.x += d.vx; d.y += d.vy;
-        if (d.x < 0) d.x = W; if (d.x > W) d.x = 0;
-        if (d.y < 0) d.y = H; if (d.y > H) d.y = 0;
-        ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(175,169,236,${d.o})`; ctx.fill();
-      });
-      dots.forEach((a, i) => dots.slice(i + 1).forEach(b => {
-        const dist = Math.hypot(a.x - b.x, a.y - b.y);
-        if (dist < 120) { ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.strokeStyle = `rgba(83,74,183,${0.12 * (1 - dist / 120)})`; ctx.stroke(); }
-      }));
-      raf = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); };
-  }, [mounted]);
-
-  const handleGoogle = async () => {
-    setLoading(true); setError('');
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/dashboard` } });
-    if (error) { setError(error.message); setLoading(false); }
-  };
-
-  const handleEmail = async () => {
-    if (!email || !password) { setError('Enter email and password.'); return; }
-    setLoading(true); setError('');
-    if (authType === 'login') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) { setError(error.message); setLoading(false); }
-    } else {
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) { setError(error.message); setLoading(false); }
-      else { setError(''); setMode('google'); alert('Check your email to verify your account.'); }
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const particles: { x:number; y:number; r:number; dx:number; dy:number; o:number }[] = [];
+    for (let i = 0; i < 80; i++) {
+      particles.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: Math.random()*1.5+0.3, dx: (Math.random()-0.5)*0.3, dy: (Math.random()-0.5)*0.3, o: Math.random()*0.5+0.15 });
     }
-    setLoading(false);
-  };
-
-  const features = [
-    { icon: '◆', title: 'Resume-aware questions', desc: 'AI reads your PDF and builds 5 questions from your actual experience.' },
-    { icon: '◆', title: 'Live body language scoring', desc: 'Camera tracks eye contact and posture as you answer.' },
-    { icon: '◆', title: 'Speech analysis', desc: 'Catches filler words, pacing, and clarity in real time.' },
-    { icon: '◆', title: 'Full session history', desc: 'Every score saved. Watch yourself improve across sessions.' },
-  ];
+    let raf: number;
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        p.x += p.dx; p.y += p.dy;
+        if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(34,197,94,${p.o})`; ctx.fill();
+      });
+      raf = requestAnimationFrame(animate);
+    };
+    animate();
+    const onResize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    window.addEventListener('resize', onResize);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); };
+  }, []);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#06060f', fontFamily: 'system-ui, -apple-system, sans-serif', color: '#fff', overflow: 'hidden auto' }}>
+    <div style={{ background:'#050f05', color:'#f8fafc', fontFamily:'system-ui,-apple-system,sans-serif', minHeight:'100vh', position:'relative', overflowX:'hidden' }}>
       <style>{`
-        @keyframes fadeup { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes glow { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
-        @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
-        @keyframes slide-in { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-        .fade1 { animation: fadeup 0.6s ease both; }
-        .fade2 { animation: fadeup 0.6s 0.15s ease both; } 
-        .fade3 { animation: fadeup 0.6s 0.3s ease both; }
-        .fade4 { animation: fadeup 0.6s 0.45s ease both; }
-        .card-anim { animation: slide-in 0.4s ease both; }
-        .btn-google { width:100%; display:flex; align-items:center; justify-content:center; gap:10px; padding:14px; background:#fff; border:none; border-radius:12px; font-size:14px; font-weight:500; color:#1a1a1a; cursor:pointer; transition:transform 0.15s, opacity 0.15s; }
-        .btn-google:hover:not(:disabled) { transform: translateY(-1px); opacity: 0.93; }
-        .btn-google:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn-purple { width:100%; padding:14px; background:#534AB7; border:none; border-radius:12px; font-size:14px; font-weight:500; color:#fff; cursor:pointer; transition:transform 0.15s, opacity 0.15s; }
-        .btn-purple:hover:not(:disabled) { transform: translateY(-1px); opacity: 0.88; }
-        .btn-purple:disabled { opacity: 0.5; cursor: not-allowed; }
-        .inp { width:100%; padding:12px 14px; background:rgba(255,255,255,0.05); border:0.5px solid rgba(255,255,255,0.12); border-radius:10px; color:#fff; font-size:14px; outline:none; transition:border-color 0.15s; box-sizing:border-box; }
-        .inp:focus { border-color:rgba(83,74,183,0.7); }
-        .inp::placeholder { color:rgba(255,255,255,0.25); }
-        .feat-card { background:rgba(255,255,255,0.02); border:0.5px solid rgba(255,255,255,0.07); border-radius:14px; padding:20px; transition:border-color 0.2s, transform 0.2s; }
-        .feat-card:hover { border-color:rgba(83,74,183,0.35); transform:translateY(-2px); }
-        .tab { flex:1; padding:8px; border-radius:8px; border:none; font-size:13px; font-weight:500; cursor:pointer; transition:all 0.15s; }
-        .stat-num { font-size:28px; font-weight:600; color:#fff; letter-spacing:-1px; }
-        .link-btn { background:none; border:none; color:#AFA9EC; font-size:13px; cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
-
-        /* ── Hero animations ── */
-        @keyframes wordReveal { from { opacity:0; transform:translateY(24px) rotateX(-40deg); } to { opacity:1; transform:translateY(0) rotateX(0); } }
-        .word-reveal { display:inline-block; animation: wordReveal 0.7s cubic-bezier(0.22,1,0.36,1) both; transform-origin: bottom; }
-        @keyframes gradientFlow { 0%,100% { background-position:0% 50%; } 50% { background-position:100% 50%; } }
-        .gradient-flow { background:linear-gradient(110deg,#AFA9EC 0%,#fff 25%,#534AB7 50%,#AFA9EC 75%,#fff 100%); background-size:300% 100%; -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation: gradientFlow 5s ease infinite; }
-
-        @keyframes shimmerSweep { 0% { transform:translateX(-120%); } 100% { transform:translateX(220%); } }
-        .badge-shimmer::after { content:''; position:absolute; top:0; left:0; width:40%; height:100%; background:linear-gradient(90deg, transparent, rgba(175,169,236,0.35), transparent); animation: shimmerSweep 3s ease-in-out infinite; }
-
-        .btn-hero-glow { position:relative; box-shadow:0 0 0 rgba(83,74,183,0.5); transition: box-shadow 0.3s ease, transform 0.15s ease; }
-        .btn-hero-glow:hover { box-shadow:0 8px 30px rgba(83,74,183,0.55); transform:translateY(-2px); }
-
-        .stat-chip { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.03); border:0.5px solid rgba(255,255,255,0.08); border-radius:99px; padding:8px 16px; animation: fadeup 0.6s ease both, float 4s ease-in-out infinite; animation-delay: inherit; }
-
-        .hero-mock { max-width:620px; margin:0 auto; animation: fadeup 0.7s ease both; perspective: 1000px; }
-        .hero-mock-inner { background:rgba(255,255,255,0.025); border:0.5px solid rgba(255,255,255,0.1); border-radius:20px; padding:22px 24px; backdrop-filter: blur(10px); box-shadow: 0 30px 80px -20px rgba(83,74,183,0.35); animation: heroFloat 6s ease-in-out infinite; }
-        @keyframes heroFloat { 0%,100% { transform: translateY(0) rotateX(0deg); } 50% { transform: translateY(-8px) rotateX(1deg); } }
-
-        @keyframes ringPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(83,74,183,0.5); } 50% { box-shadow: 0 0 0 10px rgba(83,74,183,0); } }
-        .hero-pulse-ring { animation: ringPulse 2.4s ease-in-out infinite; }
-
-        @keyframes barFill { from { width:0%; } to { width:var(--target); } }
-        .mini-bar-fill { height:4px; border-radius:2px; background:linear-gradient(90deg,#534AB7,#AFA9EC); width:0%; animation: barFill 1s cubic-bezier(0.22,1,0.36,1) forwards; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+        @keyframes fadeLeft { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:none} }
+        @keyframes fadeRight { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:none} }
+        @keyframes gradShift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+        @keyframes pulseDot { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(22,163,74,0.5)} 50%{opacity:0.7;box-shadow:0 0 0 6px rgba(22,163,74,0)} }
+        @keyframes spin { to{transform:rotate(360deg)} }
+        @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+        .anim-1 { animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.1s both; }
+        .anim-2 { animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.2s both; }
+        .anim-3 { animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.3s both; }
+        .anim-4 { animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.4s both; }
+        .anim-left { animation: fadeLeft 0.7s cubic-bezier(0.22,1,0.36,1) 0.15s both; }
+        .anim-right { animation: fadeRight 0.7s cubic-bezier(0.22,1,0.36,1) 0.3s both; }
+        .nav-link { color:rgba(248,250,252,0.6); background:none; border:none; font-size:14px; cursor:pointer; padding:6px 12px; border-radius:8px; transition:color 0.15s,background 0.15s; text-decoration:none; }
+        .nav-link:hover { color:#f8fafc; background:rgba(22,163,74,0.08); }
+        .btn-primary { background:linear-gradient(135deg,#16a34a,#22c55e); background-size:200% 200%; animation:gradShift 4s ease infinite; color:white; border:none; border-radius:12px; padding:14px 28px; font-size:15px; font-weight:700; cursor:pointer; transition:transform 0.15s,box-shadow 0.15s; box-shadow:0 4px 20px rgba(22,163,74,0.35); }
+        .btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(22,163,74,0.5); }
+        .btn-outline { background:transparent; color:#22c55e; border:1.5px solid #16a34a; border-radius:12px; padding:13px 28px; font-size:15px; font-weight:700; cursor:pointer; transition:all 0.15s; }
+        .btn-outline:hover { background:rgba(22,163,74,0.08); border-color:#22c55e; }
+        .feature-pill { display:inline-flex; align-items:center; gap:7px; background:rgba(22,163,74,0.08); border:1px solid rgba(22,163,74,0.2); border-radius:99px; padding:8px 16px; font-size:13px; color:#9ab89a; }
+        .card-g { background:#0d1a0d; border:1px solid #1e3a1e; border-radius:16px; transition:transform 0.2s,border-color 0.2s,box-shadow 0.2s; }
+        .card-g:hover { transform:translateY(-4px); border-color:#2d5a2d; box-shadow:0 16px 40px rgba(22,163,74,0.12); }
+        .step-num { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#16a34a,#22c55e); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; color:white; flex-shrink:0; box-shadow:0 4px 12px rgba(22,163,74,0.35); }
+        .score-ring { filter:drop-shadow(0 0 10px rgba(22,163,74,0.4)); }
+        .visual-card { background:#0d1a0d; border:1px solid #1e3a1e; border-radius:20px; padding:20px; box-shadow:0 24px 60px rgba(0,0,0,0.6); animation:float 5s ease-in-out infinite; }
+        .section-label { font-size:11px; font-weight:700; color:#16a34a; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:10px; }
+        .gradient-text { background:linear-gradient(135deg,#22c55e,#4ade80,#86efac); background-size:200% 200%; -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:gradShift 4s ease infinite; }
       `}</style>
 
       {/* Particle canvas */}
-      <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }} />
+      <canvas ref={canvasRef} style={{ position:'fixed', inset:0, pointerEvents:'none', zIndex:0, opacity:0.5 }} />
 
-      {/* Purple glow blobs */}
-      <div style={{ position: 'fixed', top: '-10%', right: '-5%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(83,74,183,0.15) 0%, transparent 65%)', pointerEvents: 'none', zIndex: 0, animation: 'glow 4s ease-in-out infinite' }} />
-      <div style={{ position: 'fixed', bottom: '-10%', left: '-5%', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(83,74,183,0.1) 0%, transparent 65%)', pointerEvents: 'none', zIndex: 0, animation: 'glow 5s 1s ease-in-out infinite' }} />
+      {/* Ambient orbs */}
+      <div style={{ position:'fixed', width:'600px', height:'600px', top:'-200px', left:'-100px', background:'radial-gradient(circle,rgba(22,163,74,0.08) 0%,transparent 70%)', borderRadius:'50%', pointerEvents:'none', zIndex:0 }} />
+      <div style={{ position:'fixed', width:'500px', height:'500px', bottom:'-100px', right:'-100px', background:'radial-gradient(circle,rgba(34,197,94,0.06) 0%,transparent 70%)', borderRadius:'50%', pointerEvents:'none', zIndex:0 }} />
 
-      {/* Nav */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 32px', borderBottom: '0.5px solid rgba(255,255,255,0.06)', background: 'rgba(6,6,15,0.8)', backdropFilter: 'blur(16px)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '28px', height: '28px', background: '#534AB7', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          </div>
-          <span style={{ fontSize: '16px', fontWeight: '600', letterSpacing: '-0.4px' }}>MockStar</span>
+      {/* Navbar */}
+      <nav style={{ position:'sticky', top:0, zIndex:50, backdropFilter:'blur(16px)', background:'rgba(5,15,5,0.85)', borderBottom:'1px solid rgba(22,163,74,0.1)', padding:'0 48px', display:'flex', alignItems:'center', justifyContent:'space-between', height:'64px' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+          <div style={{ width:'32px', height:'32px', borderRadius:'9px', background:'linear-gradient(135deg,#16a34a,#22c55e)', backgroundSize:'200% 200%', animation:'gradShift 4s ease infinite', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, color:'white', fontSize:'15px', boxShadow:'0 4px 12px rgba(22,163,74,0.4)' }}>M</div>
+          <span style={{ fontSize:'17px', fontWeight:800, color:'#f8fafc', letterSpacing:'-0.3px' }}>MockStar</span>
         </div>
-        <div style={{ display: 'flex', gap: '28px' }}>
-          <span onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', cursor: 'pointer' }}>Features</span>
-          <span onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', cursor: 'pointer' }}>How it works</span>
-          <span onClick={() => document.getElementById('auth-card')?.scrollIntoView({ behavior: 'smooth' })} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', cursor: 'pointer' }}>Sign in</span>
+        <div style={{ display:'flex', alignItems:'center', gap:'4px' }}>
+          <a href="#features" className="nav-link">Features</a>
+          <a href="#how-it-works" className="nav-link">How it works</a>
+          <a href="#pricing" className="nav-link">Pricing</a>
         </div>
-        <button onClick={() => document.getElementById('auth-card')?.scrollIntoView({ behavior: 'smooth' })} style={{ background: '#534AB7', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 18px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>
-          Get started →
-        </button>
+        <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+          <button className="nav-link" onClick={() => router.push('/login')}>Sign in</button>
+          <button className="btn-primary" style={{ padding:'9px 20px', fontSize:'14px' }} onClick={() => router.push('/login')}>Get started →</button>
+        </div>
       </nav>
 
-      <div style={{ position: 'relative', zIndex: 1 }}>
+      {/* HERO — two column */}
+      <section style={{ maxWidth:'1200px', margin:'0 auto', padding:'80px 48px 60px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'60px', alignItems:'center', position:'relative', zIndex:1 }}>
 
-        {/* ── HERO ── */}
-        <section style={{ maxWidth: '980px', margin: '0 auto', padding: '90px 32px 70px', textAlign: 'center', position: 'relative' }}>
-
-          {/* Mouse-reactive glow orbs */}
-          <div style={{
-            position: 'absolute', top: '-60px', left: '50%', width: '600px', height: '600px',
-            transform: `translate(calc(-50% + ${mouseX * 18}px), ${mouseY * 14}px)`,
-            background: 'radial-gradient(circle, rgba(83,74,183,0.18) 0%, transparent 60%)',
-            pointerEvents: 'none', zIndex: -1, transition: 'transform 0.3s ease-out',
-          }} />
-
-          {/* Badge — shimmer */}
-          <div className="fade1 badge-shimmer" style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(83,74,183,0.12)', border: '0.5px solid rgba(83,74,183,0.35)', borderRadius: '20px', padding: '6px 16px', marginBottom: '28px', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#534AB7', animation: 'glow 2s ease-in-out infinite', boxShadow: '0 0 8px #534AB7' }} />
-            <span style={{ fontSize: '12px', color: '#AFA9EC', letterSpacing: '0.3px', position: 'relative', zIndex: 1 }}>AI-powered interview coach</span>
+        {/* Left */}
+        <div className={mounted ? 'anim-left' : ''} style={{ opacity: mounted ? undefined : 0 }}>
+          <div style={{ display:'inline-flex', alignItems:'center', gap:'7px', background:'rgba(22,163,74,0.1)', border:'1px solid rgba(22,163,74,0.3)', borderRadius:'20px', padding:'6px 14px', marginBottom:'24px' }}>
+            <div style={{ width:'7px', height:'7px', borderRadius:'50%', background:'#16a34a', animation:'pulseDot 2s ease infinite' }} />
+            <span style={{ fontSize:'12px', color:'#9ab89a', letterSpacing:'0.3px' }}>AI-powered interview coach</span>
           </div>
 
-          {/* Headline — word-by-word reveal */}
-          <h1 style={{ fontSize: 'clamp(38px, 6.5vw, 68px)', fontWeight: '700', lineHeight: 1.08, letterSpacing: '-2.2px', margin: '0 0 22px' }}>
-            <span className="word-reveal" style={{ animationDelay: '0.05s' }}>Stop</span>{' '}
-            <span className="word-reveal" style={{ animationDelay: '0.13s' }}>winging</span>{' '}
-            <span className="word-reveal" style={{ animationDelay: '0.21s' }}>it.</span>
-            <br />
-            <span className="word-reveal gradient-flow" style={{ animationDelay: '0.32s' }}>Start</span>{' '}
-            <span className="word-reveal gradient-flow" style={{ animationDelay: '0.40s' }}>acing</span>{' '}
-            <span className="word-reveal gradient-flow" style={{ animationDelay: '0.48s' }}>it.</span>
+          <h1 style={{ fontSize:'clamp(36px,5vw,60px)', fontWeight:800, lineHeight:1.08, letterSpacing:'-2px', margin:'0 0 20px', color:'#f8fafc' }}>
+            AI mock interview practice that builds real{' '}
+            <span className="gradient-text">confidence.</span>
           </h1>
 
-          <p className="fade3" style={{ fontSize: '17px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.7, maxWidth: '520px', margin: '0 auto 38px' }}>
-            Upload your resume. Get 5 tailored questions. Answer on camera. Get scored on content, eye contact, and posture — instantly.
+          <p style={{ fontSize:'17px', color:'rgba(248,250,252,0.5)', lineHeight:1.7, margin:'0 0 32px', maxWidth:'480px' }}>
+            Upload your resume. Get 5 tailored questions generated from your actual experience. Answer on camera and get scored on speech content, eye contact, and posture — instantly.
           </p>
 
-          <div className="fade4" style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '52px' }}>
-            <button onClick={() => document.getElementById('auth-card')?.scrollIntoView({ behavior: 'smooth' })} className="btn-purple btn-hero-glow" style={{ width: 'auto', padding: '14px 30px', fontSize: '15px', fontWeight: 600 }}>
-              Start for free →
-            </button>
-          </div>
-
-          {/* Floating stat chips */}
-          <div className="fade4" style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap', marginBottom: '56px' }}>
-            {[
-              { label: 'Questions per session', value: '5', icon: '❓' },
-              { label: 'Skills scored', value: '3', icon: '📊' },
-              { label: 'Avg. session time', value: '~15 min', icon: '⏱' },
-            ].map((c, i) => (
-              <div key={c.label} className="stat-chip" style={{ animationDelay: `${0.5 + i * 0.1}s` }}>
-                <span style={{ fontSize: '14px' }}>{c.icon}</span>
-                <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>{c.value}</span>
-                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>{c.label}</span>
-              </div>
+          <div style={{ display:'flex', gap:'8px', marginBottom:'36px', flexWrap:'wrap' }}>
+            {['Structure & Clarity', 'Eye Contact', 'Posture & Presence', 'Speech Quality'].map(p => (
+              <span key={p} className="feature-pill">
+                <span style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#16a34a', flexShrink:0 }} />
+                {p}
+              </span>
             ))}
           </div>
 
-        </section>
-
-        {/* ── HOW IT WORKS ── */}
-        <section id="how-it-works" style={{ maxWidth: '780px', margin: '0 auto', padding: '0 32px 80px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-            <div style={{ fontSize: '11px', color: '#534AB7', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '10px' }}>How it works</div>
-            <h2 style={{ fontSize: '28px', fontWeight: '600', letterSpacing: '-0.8px', margin: 0 }}>Three steps to interview-ready.</h2>
+          <div style={{ display:'flex', gap:'12px', alignItems:'center', marginBottom:'40px' }}>
+            <button className="btn-primary" onClick={() => router.push('/login')}>Start for free →</button>
+            <button className="btn-outline" onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior:'smooth' })}>See how it works</button>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px' }}>
-            {[
-              { step: '01', title: 'Upload resume', desc: 'Drop your PDF. AI reads your skills, projects, and experience.' },
-              { step: '02', title: 'Answer on camera', desc: 'Get 5 tailored questions. Record your answers in real time.' },
-              { step: '03', title: 'Get scored', desc: 'Instant feedback on content, eye contact, posture, and speech.' },
-            ].map((s, i) => (
-              <div key={i} style={{ background: 'rgba(255,255,255,0.02)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '16px', padding: '24px' }}>
-                <div style={{ fontSize: '11px', color: '#534AB7', fontWeight: '600', letterSpacing: '1px', marginBottom: '12px' }}>{s.step}</div>
-                <div style={{ fontSize: '15px', fontWeight: '500', color: '#fff', marginBottom: '8px' }}>{s.title}</div>
-                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>{s.desc}</div>
-              </div>
-            ))}
+
+          <div style={{ display:'flex', alignItems:'center', gap:'16px', paddingTop:'16px', borderTop:'1px solid rgba(22,163,74,0.1)' }}>
+            <div style={{ display:'flex', gap:'-6px' }}>
+              {['A','B','C','D'].map((l,i) => (
+                <div key={l} style={{ width:'30px', height:'30px', borderRadius:'50%', background:`linear-gradient(135deg,${['#16a34a','#22c55e','#4ade80','#86efac'][i]},#050f05)`, border:'2px solid #050f05', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', fontWeight:700, color:'white', marginLeft: i>0?'-8px':'0', zIndex:4-i, position:'relative' }}>{l}</div>
+              ))}
+            </div>
+            <div>
+              <div style={{ fontSize:'13px', fontWeight:600, color:'#f8fafc' }}>Join 500+ candidates</div>
+              <div style={{ fontSize:'11px', color:'#6b8f6b' }}>practicing smarter, not harder</div>
+            </div>
           </div>
-        </section>
+        </div>
 
-        {/* ── FEATURES ── */}
-        <section id="features" style={{ maxWidth: '780px', margin: '0 auto', padding: '0 32px 80px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-            <div style={{ fontSize: '11px', color: '#534AB7', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '10px' }}>What makes it different</div>
-            <h2 style={{ fontSize: '28px', fontWeight: '600', letterSpacing: '-0.8px', margin: 0 }}>Not just questions. A full coach.</h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            {features.map((f, i) => (
-              <div key={i} className="feat-card">
-                <div style={{ fontSize: '10px', color: '#534AB7', marginBottom: '8px' }}>{f.icon}</div>
-                <div style={{ fontSize: '14px', fontWeight: '500', color: '#fff', marginBottom: '6px' }}>{f.title}</div>
-                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>{f.desc}</div>
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* Right — visual mockup */}
+        <div className={mounted ? 'anim-right' : ''} style={{ opacity: mounted ? undefined : 0, position:'relative' }}>
+          <div style={{ position:'absolute', top:'-40px', right:'-40px', width:'300px', height:'300px', background:'radial-gradient(circle,rgba(22,163,74,0.15) 0%,transparent 70%)', borderRadius:'50%', pointerEvents:'none' }} />
 
-        {/* ── AUTH CARD ── */}
-        <section id="auth-card" style={{ maxWidth: '420px', margin: '0 auto', padding: '0 24px 100px' }}>
-          <div style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '22px', padding: '36px 32px' }} className="card-anim">
-            <h2 style={{ fontSize: '20px', fontWeight: '600', letterSpacing: '-0.4px', marginBottom: '6px' }}>
-              {mode === 'google' ? 'Get started free' : authType === 'login' ? 'Sign in' : 'Create account'}
-            </h2>
-            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '24px', lineHeight: 1.6 }}>
-              {mode === 'google' ? 'One click. Your sessions and history saved automatically.' : 'Use your email and password to continue.'}
-            </p>
+          <div className="visual-card">
+            {/* Browser chrome */}
+            <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'14px' }}>
+              <div style={{ width:'9px', height:'9px', borderRadius:'50%', background:'#ef4444' }} />
+              <div style={{ width:'9px', height:'9px', borderRadius:'50%', background:'#f59e0b' }} />
+              <div style={{ width:'9px', height:'9px', borderRadius:'50%', background:'#22c55e' }} />
+              <div style={{ flex:1, background:'rgba(255,255,255,0.04)', borderRadius:'5px', padding:'4px 10px', fontSize:'10px', color:'rgba(255,255,255,0.25)', marginLeft:'6px' }}>mockstar.app/interview</div>
+            </div>
 
-            {mode === 'google' ? (
-              <>
-                <button className="btn-google" onClick={handleGoogle} disabled={loading}>
-                  {loading
-                    ? <div style={{ width: '16px', height: '16px', border: '2px solid rgba(83,74,183,0.3)', borderTop: '2px solid #534AB7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                    : <>
-                        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                        Continue with Google
-                      </>
-                  }
-                </button>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '18px 0' }}>
-                  <div style={{ flex: 1, height: '0.5px', background: 'rgba(255,255,255,0.08)' }} />
-                  <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.25)' }}>or</span>
-                  <div style={{ flex: 1, height: '0.5px', background: 'rgba(255,255,255,0.08)' }} />
-                </div>
-                <button onClick={() => setMode('email')} style={{ width: '100%', padding: '13px', background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'rgba(255,255,255,0.6)', fontSize: '14px', cursor: 'pointer' }}>
-                  Continue with email
-                </button>
-              </>
-            ) : (
-              <>
-                {/* tabs */}
-                <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '4px', marginBottom: '20px' }}>
-                  {(['login', 'register'] as const).map(t => (
-                    <button key={t} className="tab" onClick={() => setAuthType(t)} style={{ background: authType === t ? 'rgba(83,74,183,0.5)' : 'transparent', color: authType === t ? '#fff' : 'rgba(255,255,255,0.4)', border: 'none' }}>
-                      {t === 'login' ? 'Sign in' : 'Register'}
-                    </button>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
-                  <input className="inp" type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} />
-                  <input className="inp" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleEmail()} />
-                </div>
-                <button className="btn-purple" onClick={handleEmail} disabled={loading}>
-                  {loading ? 'Please wait...' : authType === 'login' ? 'Sign in' : 'Create account'}
-                </button>
-                <div style={{ textAlign: 'center', marginTop: '14px' }}>
-                  <button className="link-btn" onClick={() => setMode('google')}>← Back to Google sign in</button>
-                </div>
-              </>
-            )}
+            {/* Question */}
+            <div style={{ marginBottom:'16px' }}>
+              <div style={{ fontSize:'10px', color:'#22c55e', textTransform:'uppercase', letterSpacing:'1px', fontWeight:700, marginBottom:'7px' }}>Question 2 of 5</div>
+              <div style={{ fontSize:'14px', color:'#f8fafc', lineHeight:1.55, fontWeight:600 }}>"Walk me through a project where you had to balance technical debt against delivery speed."</div>
+            </div>
 
-            {error && (
-              <div style={{ marginTop: '14px', padding: '11px 14px', background: 'rgba(226,75,74,0.1)', border: '0.5px solid rgba(226,75,74,0.3)', borderRadius: '10px', fontSize: '13px', color: '#F09595' }}>
-                {error}
-              </div>
-            )}
+            {/* Progress dots */}
+            <div style={{ display:'flex', gap:'4px', marginBottom:'14px' }}>
+              {[1,2,3,4,5].map(i => (
+                <div key={i} style={{ height:'4px', borderRadius:'99px', background: i<=2?'#16a34a':'#1e3a1e', flex: i===2?2:1, transition:'all 0.3s' }} />
+              ))}
+            </div>
 
-            <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '0.5px solid rgba(255,255,255,0.07)' }}>
-              {['Resume-aware AI questions', 'Live camera & speech scoring', 'Full session history'].map((t, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#534AB7', flexShrink: 0 }} />
-                  <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)' }}>{t}</span>
+            {/* Score breakdown */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', marginBottom:'14px' }}>
+              {[{label:'Speech',v:82,c:'#22c55e'},{label:'Eye contact',v:71,c:'#4ade80'},{label:'Posture',v:78,c:'#86efac'}].map(({label,v,c})=>(
+                <div key={label} style={{ background:'#050f05', border:'1px solid #1e3a1e', borderRadius:'10px', padding:'10px 8px', textAlign:'center' }}>
+                  <div style={{ fontSize:'16px', fontWeight:800, color:c }}>{v}%</div>
+                  <div style={{ fontSize:'9px', color:'#6b8f6b', marginTop:'2px' }}>{label}</div>
+                  <div style={{ height:'3px', background:'#1e3a1e', borderRadius:'2px', marginTop:'6px', overflow:'hidden' }}>
+                    <div style={{ height:'3px', width:`${v}%`, background:c, borderRadius:'2px' }} />
+                  </div>
                 </div>
               ))}
             </div>
+
+            {/* Recording button */}
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'12px 14px', background:'rgba(22,163,74,0.08)', border:'1px solid rgba(22,163,74,0.2)', borderRadius:'12px' }}>
+              <div style={{ width:'36px', height:'36px', borderRadius:'50%', background:'linear-gradient(135deg,#16a34a,#22c55e)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'15px', boxShadow:'0 0 0 4px rgba(22,163,74,0.2)', animation:'pulseDot 2s ease infinite', flexShrink:0 }}>🎙️</div>
+              <div>
+                <div style={{ fontSize:'12px', fontWeight:600, color:'#f8fafc' }}>AI is listening...</div>
+                <div style={{ fontSize:'10px', color:'#6b8f6b' }}>Stop talking when finished</div>
+              </div>
+              <div style={{ marginLeft:'auto', display:'flex', gap:'2px', alignItems:'flex-end', height:'16px' }}>
+                {[4,7,10,7,4,6,9,6,4].map((h,i)=>(
+                  <div key={i} style={{ width:'3px', height:`${h}px`, background:'#22c55e', borderRadius:'2px', opacity:0.7 }} />
+                ))}
+              </div>
+            </div>
           </div>
-          <p style={{ textAlign: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.18)', marginTop: '16px' }}>
-            By signing in you agree to our terms and privacy policy.
-          </p>
-        </section>
+
+          {/* Floating score card */}
+          <div style={{ position:'absolute', top:'-20px', right:'-20px', background:'#0d1a0d', border:'1px solid rgba(22,163,74,0.3)', borderRadius:'12px', padding:'12px 16px', boxShadow:'0 8px 24px rgba(0,0,0,0.5)', animation:'float 4s 1s ease-in-out infinite' }}>
+            <div style={{ fontSize:'10px', color:'#6b8f6b', marginBottom:'4px' }}>Overall score</div>
+            <div style={{ fontSize:'24px', fontWeight:800, color:'#22c55e' }}>78%</div>
+            <div style={{ fontSize:'10px', color:'#16a34a', fontWeight:600 }}>↑ +13 from last session</div>
+          </div>
+
+          {/* Floating feedback card */}
+          <div style={{ position:'absolute', bottom:'-16px', left:'-24px', background:'#0d1a0d', border:'1px solid rgba(22,163,74,0.2)', borderRadius:'12px', padding:'10px 14px', maxWidth:'200px', boxShadow:'0 8px 24px rgba(0,0,0,0.5)', animation:'float 5s 0.5s ease-in-out infinite' }}>
+            <div style={{ fontSize:'10px', color:'#6b8f6b', marginBottom:'4px' }}>AI Feedback</div>
+            <div style={{ fontSize:'11px', color:'#d4ead4', lineHeight:1.5 }}>Strong technical depth. Work on maintaining eye contact.</div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats bar */}
+      <div style={{ borderTop:'1px solid rgba(22,163,74,0.08)', borderBottom:'1px solid rgba(22,163,74,0.08)', background:'rgba(13,26,13,0.5)', backdropFilter:'blur(8px)', position:'relative', zIndex:1 }}>
+        <div style={{ maxWidth:'1200px', margin:'0 auto', padding:'28px 48px', display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'24px' }}>
+          {[{val:'5',label:'Questions per session',icon:'❓'},{val:'3',label:'Skills scored per session',icon:'📊'},{val:'~15 min',label:'Average session time',icon:'⏱'},{val:'Instant',label:'AI feedback turnaround',icon:'⚡'}].map(({val,label,icon})=>(
+            <div key={label} style={{ textAlign:'center' }}>
+              <div style={{ fontSize:'20px', marginBottom:'6px' }}>{icon}</div>
+              <div style={{ fontSize:'22px', fontWeight:800, color:'#22c55e', marginBottom:'3px' }}>{val}</div>
+              <div style={{ fontSize:'11px', color:'#6b8f6b' }}>{label}</div>
+            </div>
+          ))}
+        </div>
       </div>
+
+      {/* Features section */}
+      <section id="features" style={{ maxWidth:'1200px', margin:'0 auto', padding:'80px 48px', position:'relative', zIndex:1 }}>
+        <div style={{ textAlign:'center', marginBottom:'56px' }}>
+          <div className="section-label">What we score</div>
+          <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:800, color:'#f8fafc', letterSpacing:'-1.5px', margin:'0 0 14px' }}>Three dimensions.<br />One complete picture.</h2>
+          <p style={{ color:'rgba(248,250,252,0.45)', fontSize:'16px', maxWidth:'500px', margin:'0 auto', lineHeight:1.7 }}>Most tools only score what you say. We score how you say it and how you present it.</p>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'20px' }}>
+          {[
+            { icon:'💬', title:'Speech content', sub:'Answer quality', desc:'Gemini reads your video and evaluates how well your answer covers the question — depth, structure, technical accuracy, and relevance to your actual experience.', color:'#22c55e' },
+            { icon:'👁', title:'Eye contact', sub:'Presence & focus', desc:'Computer Vision tracks whether you are looking at the camera during key moments. Real interviewers notice when you are staring at your own preview instead of them.', color:'#4ade80' },
+            { icon:'🧍', title:'Posture', sub:'Non-verbal confidence', desc:'OpenCV detects whether you are sitting upright, leaning, or collapsing — signals that interviewers read as confidence or nervousness before you say a word.', color:'#86efac' },
+          ].map(({ icon, title, sub, desc, color }) => (
+            <div key={title} className="card-g" style={{ padding:'28px' }}>
+              <div style={{ width:'52px', height:'52px', borderRadius:'14px', background:'rgba(22,163,74,0.1)', border:'1px solid rgba(22,163,74,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'24px', marginBottom:'18px' }}>{icon}</div>
+              <div style={{ fontSize:'11px', color, textTransform:'uppercase', letterSpacing:'1px', fontWeight:700, marginBottom:'6px' }}>{sub}</div>
+              <div style={{ fontSize:'18px', fontWeight:700, color:'#f8fafc', marginBottom:'12px' }}>{title}</div>
+              <div style={{ fontSize:'13px', color:'rgba(248,250,252,0.45)', lineHeight:1.7 }}>{desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section id="how-it-works" style={{ background:'rgba(13,26,13,0.4)', borderTop:'1px solid rgba(22,163,74,0.08)', borderBottom:'1px solid rgba(22,163,74,0.08)', position:'relative', zIndex:1 }}>
+        <div style={{ maxWidth:'1200px', margin:'0 auto', padding:'80px 48px' }}>
+          <div style={{ textAlign:'center', marginBottom:'56px' }}>
+            <div className="section-label">How it works</div>
+            <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:800, color:'#f8fafc', letterSpacing:'-1.5px', margin:0 }}>From resume to feedback in 15 minutes.</h2>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'20px', position:'relative' }}>
+            <div style={{ position:'absolute', top:'18px', left:'12.5%', right:'12.5%', height:'1px', background:'linear-gradient(90deg,rgba(22,163,74,0.3),rgba(34,197,94,0.6),rgba(22,163,74,0.3))', pointerEvents:'none' }} />
+            {[
+              { n:'1', icon:'📄', title:'Upload resume', desc:'We extract your skills, projects, and experience — no manual input needed.' },
+              { n:'2', icon:'❓', title:'Get 5 questions', desc:'Gemini generates questions tailored to what is actually on your resume.' },
+              { n:'3', icon:'🎥', title:'Answer on camera', desc:'Silence detection auto-stops recording. No button pressing needed.' },
+              { n:'4', icon:'📊', title:'Get your scores', desc:'Speech content, eye contact, and posture — with written AI feedback.' },
+            ].map(({ n, icon, title, desc }) => (
+              <div key={n} style={{ textAlign:'center', padding:'24px 16px', position:'relative' }}>
+                <div style={{ display:'flex', justifyContent:'center', marginBottom:'16px' }}>
+                  <div className="step-num">{n}</div>
+                </div>
+                <div style={{ fontSize:'28px', marginBottom:'12px' }}>{icon}</div>
+                <div style={{ fontSize:'15px', fontWeight:700, color:'#f8fafc', marginBottom:'8px' }}>{title}</div>
+                <div style={{ fontSize:'12px', color:'rgba(248,250,252,0.45)', lineHeight:1.7 }}>{desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Who it's for */}
+      <section style={{ maxWidth:'1200px', margin:'0 auto', padding:'80px 48px', position:'relative', zIndex:1 }}>
+        <div style={{ textAlign:'center', marginBottom:'48px' }}>
+          <div className="section-label">Who it's for</div>
+          <h2 style={{ fontSize:'clamp(28px,4vw,40px)', fontWeight:800, color:'#f8fafc', letterSpacing:'-1.5px', margin:0 }}>Built for the moments that matter most.</h2>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'16px' }}>
+          {[
+            { emoji:'🎓', title:'Final year students', desc:'Practice technical and HR rounds before campus placements. Your resume is fresh — your interview skills should be too.' },
+            { emoji:'💼', title:'Job switchers', desc:'Returning to interviews after years in a role? Get sharp fast without paying for a human coach.' },
+            { emoji:'🚀', title:'Active applicants', desc:'Practicing for 3 interviews this week? Run a session each evening and track your improvement between rounds.' },
+          ].map(({ emoji, title, desc }) => (
+            <div key={title} className="card-g" style={{ padding:'24px' }}>
+              <div style={{ fontSize:'32px', marginBottom:'14px' }}>{emoji}</div>
+              <div style={{ fontSize:'16px', fontWeight:700, color:'#f8fafc', marginBottom:'8px' }}>{title}</div>
+              <div style={{ fontSize:'13px', color:'rgba(248,250,252,0.45)', lineHeight:1.7 }}>{desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section style={{ position:'relative', zIndex:1, overflow:'hidden' }}>
+        <div style={{ maxWidth:'800px', margin:'0 auto', padding:'80px 48px', textAlign:'center' }}>
+          <div style={{ background:'rgba(13,26,13,0.8)', border:'1px solid rgba(22,163,74,0.2)', borderRadius:'24px', padding:'60px 48px', position:'relative', overflow:'hidden' }}>
+            <div style={{ position:'absolute', inset:0, background:'radial-gradient(circle at 50% 0%,rgba(22,163,74,0.12),transparent 70%)', pointerEvents:'none' }} />
+            <div style={{ position:'relative' }}>
+              <div style={{ fontSize:'36px', marginBottom:'16px' }}>🎯</div>
+              <h2 style={{ fontSize:'clamp(24px,4vw,38px)', fontWeight:800, color:'#f8fafc', letterSpacing:'-1.2px', margin:'0 0 14px' }}>Your next interview is closer<br />than you think.</h2>
+              <p style={{ color:'rgba(248,250,252,0.45)', fontSize:'16px', margin:'0 0 32px', lineHeight:1.7 }}>No credit card. No onboarding call. Just upload your resume and start in under 2 minutes.</p>
+              <button className="btn-primary" style={{ padding:'16px 36px', fontSize:'16px' }} onClick={() => router.push('/login')}>Get started for free →</button>
+              <div style={{ marginTop:'16px', fontSize:'12px', color:'#4a6f4a' }}>Free plan · No credit card required</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={{ borderTop:'1px solid rgba(22,163,74,0.08)', position:'relative', zIndex:1 }}>
+        <div style={{ maxWidth:'1200px', margin:'0 auto', padding:'28px 48px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+            <div style={{ width:'22px', height:'22px', borderRadius:'6px', background:'linear-gradient(135deg,#16a34a,#22c55e)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, color:'white', fontSize:'11px' }}>M</div>
+            <span style={{ fontSize:'13px', fontWeight:700, color:'#f8fafc' }}>MockStar</span>
+          </div>
+          <div style={{ fontSize:'12px', color:'#4a6f4a' }}>© 2025 MockStar. Built by Aryan, Aman & Gaurav.</div>
+          <div style={{ display:'flex', gap:'16px' }}>
+            <a href="#" style={{ fontSize:'12px', color:'#4a6f4a', textDecoration:'none' }}>Privacy</a>
+            <a href="#" style={{ fontSize:'12px', color:'#4a6f4a', textDecoration:'none' }}>Terms</a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
