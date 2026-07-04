@@ -147,14 +147,19 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Bottom quote */}
+        {/* Bottom — honest value props */}
         <div style={{ position:'relative', zIndex:1, borderTop:'1px solid rgba(22,163,74,0.1)', paddingTop:'20px', animation:mounted?'fadeLeft 0.6s 0.3s ease both':undefined, opacity:mounted?undefined:0 }}>
-          <p style={{ fontSize:'13px', color:'rgba(248,250,252,0.3)', lineHeight:1.6, fontStyle:'italic', margin:'0 0 8px' }}>
-            "The questions were scarily accurate to what I got asked in my actual Flipkart interview."
-          </p>
-          <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-            <div style={{ width:'24px', height:'24px', borderRadius:'50%', background:'linear-gradient(135deg,#16a34a,#22c55e)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'10px', fontWeight:700, color:'white' }}>R</div>
-            <span style={{ fontSize:'11px', color:'#4a6f4a' }}>Rahul S. · SDE candidate, Bangalore</span>
+          <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+            {[
+              { icon:'🎯', text:'Questions generated from your actual resume — not generic templates' },
+              { icon:'📹', text:'Camera + silence detection — no manual stop/start needed' },
+              { icon:'📊', text:'Scored on 3 dimensions: speech, eye contact, and posture' },
+            ].map(({ icon, text }) => (
+              <div key={text} style={{ display:'flex', alignItems:'flex-start', gap:'8px' }}>
+                <span style={{ fontSize:'13px', flexShrink:0 }}>{icon}</span>
+                <span style={{ fontSize:'12px', color:'rgba(248,250,252,0.35)', lineHeight:1.5 }}>{text}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

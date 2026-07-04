@@ -128,16 +128,9 @@ export default function LandingPage() {
             <button className="btn-outline" onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior:'smooth' })}>See how it works</button>
           </div>
 
-          <div style={{ display:'flex', alignItems:'center', gap:'16px', paddingTop:'16px', borderTop:'1px solid rgba(22,163,74,0.1)' }}>
-            <div style={{ display:'flex', gap:'-6px' }}>
-              {['A','B','C','D'].map((l,i) => (
-                <div key={l} style={{ width:'30px', height:'30px', borderRadius:'50%', background:`linear-gradient(135deg,${['#16a34a','#22c55e','#4ade80','#86efac'][i]},#050f05)`, border:'2px solid #050f05', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', fontWeight:700, color:'white', marginLeft: i>0?'-8px':'0', zIndex:4-i, position:'relative' }}>{l}</div>
-              ))}
-            </div>
-            <div>
-              <div style={{ fontSize:'13px', fontWeight:600, color:'#f8fafc' }}>Join 500+ candidates</div>
-              <div style={{ fontSize:'11px', color:'#6b8f6b' }}>practicing smarter, not harder</div>
-            </div>
+          <div style={{ display:'flex', alignItems:'center', gap:'10px', paddingTop:'16px', borderTop:'1px solid rgba(22,163,74,0.1)' }}>
+            <div style={{ width:'7px', height:'7px', borderRadius:'50%', background:'#16a34a', flexShrink:0 }} />
+            <div style={{ fontSize:'12px', color:'#6b8f6b' }}>Free to start · No credit card required · Works on any resume</div>
           </div>
         </div>
 
@@ -318,7 +311,7 @@ export default function LandingPage() {
             <div style={{ width:'22px', height:'22px', borderRadius:'6px', background:'linear-gradient(135deg,#16a34a,#22c55e)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, color:'white', fontSize:'11px' }}>M</div>
             <span style={{ fontSize:'13px', fontWeight:700, color:'#f8fafc' }}>MockStar</span>
           </div>
-          <div style={{ fontSize:'12px', color:'#4a6f4a' }}>© 2025 MockStar. Built by Aryan, Aman & Gaurav.</div>
+          <div style={{ fontSize:'12px', color:'#4a6f4a' }}>© 2025 MockStar · AI-powered interview practice</div>
           <div style={{ display:'flex', gap:'16px' }}>
             <a href="#" style={{ fontSize:'12px', color:'#4a6f4a', textDecoration:'none' }}>Privacy</a>
             <a href="#" style={{ fontSize:'12px', color:'#4a6f4a', textDecoration:'none' }}>Terms</a>
