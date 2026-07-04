@@ -28,7 +28,7 @@ export default function Sidebar() {
     })();
   }, []);
 
-  const handleLogout = async () => { await supabase.auth.signOut(); router.push('/'); };
+  const handleLogout = async () => { await supabase.auth.signOut(); router.push('/login'); };
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: '▣' },
