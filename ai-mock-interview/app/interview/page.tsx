@@ -264,7 +264,8 @@ export default function InterviewRoom() {
             "{aiQuestions[currentQuestionIndex]}"
           </p>
 
-          <div style={{ marginTop:'26px', padding:'24px', background:'#0d1a0d', borderRadius:'16px', borderLeft:isRecording?(isSpeaking?'4px solid #22c55e':'4px solid #eab308'):'4px solid #16a34a', border:'1px solid #1e3a1e', borderLeftWidth:'4px', transition:'border-color 0.3s ease' }}>
+          <div style={{ marginTop:'26px', padding:'24px', background:'#0d1a0d', borderRadius:'16px', borderTop:'1px solid #1e3a1e', borderRight:'1px solid #1e3a1e', borderBottom:'1px solid #1e3a1e',
+borderLeft:isRecording?(isSpeaking?'4px solid #22c55e':'4px solid #eab308'):'4px solid #16a34a', transition:'border-color 0.3s ease' }}>
             {isProcessingVideo ? (
               <div style={{ display:'flex', alignItems:'center', gap:'14px' }}>
                 <div style={{ width:'26px', height:'26px', border:'3px solid #1e3a1e', borderTopColor:'#22c55e', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
