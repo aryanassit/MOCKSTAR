@@ -35,15 +35,10 @@ export default function InterviewRoom() {
         setUserId(session.user.id);
         const { data: profile } = await supabase.from('profiles').select('resume_url').eq('id', session.user.id).single();
         if (!profile?.resume_url) { alert("Resume not found."); return router.push('/dashboard'); }
-<<<<<<< HEAD
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}/generate-questions`, {
-          method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({resume_url:profile.resume_url})
-=======
-
         const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}/api/v1/generate-questions`, {
-          method:'POST', headers:{'Content-Type':'application/json'},
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ resume_url: profile.resume_url })
->>>>>>> 2ba843c2a8cdaecc1de9e4231732b149acf7fafc
         });
         if (!response.ok) throw new Error("Failed to generate questions");
         const data = await response.json();
@@ -120,14 +115,10 @@ export default function InterviewRoom() {
     try {
       const lastUrl = videoUrlsRef.current[videoUrlsRef.current.length-1];
       const lastQ = aiQuestions[aiQuestions.length-1];
-<<<<<<< HEAD
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL||'http://localhost:8000'}/analyze-video`,{
-        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_url:lastUrl,question:lastQ})
-=======
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}/api/v1/analyze-video`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ video_url:lastUrl, question:lastQ })
->>>>>>> 2ba843c2a8cdaecc1de9e4231732b149acf7fafc
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ video_url: lastUrl, question: lastQ })
       });
       if(!response.ok) throw new Error("Failed to analyze video");
       const data = await response.json();
