@@ -24,9 +24,15 @@
   --shadow-green: 0 4px 14px rgba(22,163,74,0.2);
 }
 
+html, body {
+  min-height: 100%;
+  background: #050f05;
+  color: #f8fafc;
+}
+
 body {
-  background: var(--bg-base);
-  color: var(--text-primary);
+  background: #050f05;
+  color: #f8fafc;
   font-family: system-ui, -apple-system, sans-serif;
 }
 
