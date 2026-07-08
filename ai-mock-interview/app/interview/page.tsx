@@ -26,7 +26,23 @@ export default function InterviewRoom() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [finalScores, setFinalScores] = useState<any>(null);
   const [volumeLevel, setVolumeLevel] = useState(0);
-
+  const [muted, setMuted] = useState(false);
+  
+  const speakQuestion = (text: string) => {
+  if (!window.speechSynthesis || muted) return;
+  window.speechSynthesis.cancel(); // stop any previous speech
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 0.92;   // slightly slower = clearer
+  utterance.pitch = 1;
+  utterance.volume = 1;
+  // pick a natural-sounding voice if available
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v =>
+    v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Daniel')
+  );
+  if (preferred) utterance.voice = preferred;
+  window.speechSynthesis.speak(utterance);
+};
   useEffect(() => {
     const init = async () => {
       try {
@@ -60,6 +76,12 @@ export default function InterviewRoom() {
     if (!isInitializing && videoRef.current && activeStreamRef.current)
       videoRef.current.srcObject = activeStreamRef.current;
   }, [isInitializing]);
+
+  useEffect(() => {
+  if (aiQuestions.length > 0 && !isInitializing) {
+    speakQuestion(aiQuestions[currentQuestionIndex]);
+  }
+}, [currentQuestionIndex, aiQuestions, isInitializing]);
 
   const setupVAD = (stream: MediaStream) => {
     const ac = new (window.AudioContext||(window as any).webkitAudioContext)();
@@ -105,7 +127,7 @@ export default function InterviewRoom() {
 
   const moveToNextQuestion = () => {
     if (currentQuestionIndex<aiQuestions.length-1) setCurrentQuestionIndex(p=>p+1);
-    else { setIsInterviewComplete(true); activeStreamRef.current?.getTracks().forEach(t=>t.stop()); analyzeFinalResults(); }
+    else { setIsInterviewComplete(true); activeStreamRef.current?.getTracks().forEach(t=>t.stop()); window.speechSynthesis?.cancel(); analyzeFinalResults(); }
   };
 
   const analyzeFinalResults = async () => {
@@ -264,6 +286,7 @@ export default function InterviewRoom() {
                   Start Recording Answer
                 </button>
               </div>
+              
             ):(
               <div>
                 <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
@@ -280,6 +303,15 @@ export default function InterviewRoom() {
             )}
           </div>
         </div>
+        <button
+  onClick={() => {
+    setMuted(m => !m);
+    if (!muted) window.speechSynthesis?.cancel();
+  }}
+  style={{ background:'none', border:'1px solid #e2e8f0', borderRadius:8, padding:'5px 10px', fontSize:12, cursor:'pointer', color:'#6b7280' }}
+>
+  {muted ? '🔇 Muted' : '🔊 Speaking'}
+</button>
 
         {/* Right — camera */}
         <div style={{flex:1,minWidth:300,animation:'fadeRight 0.5s 0.2s ease both'}}>
