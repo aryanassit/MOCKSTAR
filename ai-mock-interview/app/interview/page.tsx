@@ -26,38 +26,85 @@ export default function InterviewRoom() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [finalScores, setFinalScores] = useState<any>(null);
   const [volumeLevel, setVolumeLevel] = useState(0);
+
+  // ── Voice feature state ──────────────────────────────────────────
   const [muted, setMuted] = useState(false);
-  
+  const [isSpeakingQuestion, setIsSpeakingQuestion] = useState(false);
+
+  // ── Speak a question using browser TTS ──────────────────────────
   const speakQuestion = (text: string) => {
-  if (!window.speechSynthesis || muted) return;
-  window.speechSynthesis.cancel(); // stop any previous speech
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 0.92;   // slightly slower = clearer
-  utterance.pitch = 1;
-  utterance.volume = 1;
-  // pick a natural-sounding voice if available
-  const voices = window.speechSynthesis.getVoices();
-  const preferred = voices.find(v =>
-    v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Daniel')
-  );
-  if (preferred) utterance.voice = preferred;
-  window.speechSynthesis.speak(utterance);
-};
+    if (!window.speechSynthesis || muted) return;
+    window.speechSynthesis.cancel();
+    setIsSpeakingQuestion(true);
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.92;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    // Try to pick a natural voice
+    const trySpeak = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v =>
+        v.name.includes('Google') ||
+        v.name.includes('Samantha') ||
+        v.name.includes('Daniel') ||
+        v.name.includes('Karen') ||
+        (v.lang === 'en-US' && v.localService)
+      );
+      if (preferred) utterance.voice = preferred;
+      utterance.onend = () => setIsSpeakingQuestion(false);
+      utterance.onerror = () => setIsSpeakingQuestion(false);
+      window.speechSynthesis.speak(utterance);
+    };
+    // Chrome loads voices async
+    if (window.speechSynthesis.getVoices().length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => { trySpeak(); window.speechSynthesis.onvoiceschanged = null; };
+    } else {
+      trySpeak();
+    }
+  };
+
+  const stopSpeaking = () => {
+    window.speechSynthesis?.cancel();
+    setIsSpeakingQuestion(false);
+  };
+
+  const toggleMute = () => {
+    const newMuted = !muted;
+    setMuted(newMuted);
+    if (newMuted) stopSpeaking();
+  };
+
+  // ── Speak whenever question changes ─────────────────────────────
+  useEffect(() => {
+    if (aiQuestions.length > 0 && !isInitializing) {
+      speakQuestion(aiQuestions[currentQuestionIndex]);
+    }
+  }, [currentQuestionIndex, aiQuestions, isInitializing]);
+
+  // ── Don't forget to stop TTS when mute is toggled ───────────────
+  useEffect(() => {
+    if (muted) stopSpeaking();
+  }, [muted]);
+
+  // ── Main init ────────────────────────────────────────────────────
   useEffect(() => {
     const init = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return router.push('/login');
+        if (!session) return router.push('/');
         setUserId(session.user.id);
         const { data: profile } = await supabase.from('profiles').select('resume_url').eq('id', session.user.id).single();
         if (!profile?.resume_url) { alert("Resume not found."); return router.push('/dashboard'); }
+
         const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}/generate-questions`, {
-          method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({resume_url:profile.resume_url})
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resume_url: profile.resume_url })
         });
-        if (!response.ok) throw new Error("Failed to generate questions");
+        if (!response.ok) throw new Error("Failed to generate AI questions");
         const data = await response.json();
         setAiQuestions(data.questions);
-        const stream = await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         activeStreamRef.current = stream;
         if (videoRef.current) videoRef.current.srcObject = stream;
         setHasCameraAccess(true);
@@ -67,8 +114,9 @@ export default function InterviewRoom() {
     };
     init();
     return () => {
-      if (videoRef.current?.srcObject) (videoRef.current.srcObject as MediaStream).getTracks().forEach(t=>t.stop());
+      if (videoRef.current?.srcObject) (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
       if (audioContextRef.current) audioContextRef.current.close();
+      stopSpeaking();
     };
   }, [router]);
 
@@ -77,162 +125,186 @@ export default function InterviewRoom() {
       videoRef.current.srcObject = activeStreamRef.current;
   }, [isInitializing]);
 
-  useEffect(() => {
-  if (aiQuestions.length > 0 && !isInitializing) {
-    speakQuestion(aiQuestions[currentQuestionIndex]);
-  }
-}, [currentQuestionIndex, aiQuestions, isInitializing]);
-
+  // ── VAD ──────────────────────────────────────────────────────────
   const setupVAD = (stream: MediaStream) => {
-    const ac = new (window.AudioContext||(window as any).webkitAudioContext)();
+    const ac = new (window.AudioContext || (window as any).webkitAudioContext)();
     audioContextRef.current = ac;
     const analyser = ac.createAnalyser();
     const mic = ac.createMediaStreamSource(stream);
-    const sp = ac.createScriptProcessor(2048,1,1);
-    analyser.smoothingTimeConstant=0.8; analyser.fftSize=1024;
+    const sp = ac.createScriptProcessor(2048, 1, 1);
+    analyser.smoothingTimeConstant = 0.8; analyser.fftSize = 1024;
     mic.connect(analyser); analyser.connect(sp); sp.connect(ac.destination);
     sp.onaudioprocess = () => {
       const arr = new Uint8Array(analyser.frequencyBinCount);
       analyser.getByteFrequencyData(arr);
-      const vol = arr.reduce((a,v)=>a+v,0)/arr.length;
+      const vol = arr.reduce((a, v) => a + v, 0) / arr.length;
       setVolumeLevel(vol);
-      const isRec = mediaRecorderRef.current?.state==='recording';
-      if (vol>18) { setIsSpeaking(true); if(silenceTimerRef.current){clearTimeout(silenceTimerRef.current);silenceTimerRef.current=null;} }
-      else { setIsSpeaking(false); if(isRec&&!silenceTimerRef.current){silenceTimerRef.current=setTimeout(()=>{if(mediaRecorderRef.current?.state!=='inactive'){mediaRecorderRef.current!.stop();setIsRecording(false);}silenceTimerRef.current=null;},3000);} }
+      const isRec = mediaRecorderRef.current?.state === 'recording';
+      if (vol > 18) {
+        setIsSpeaking(true);
+        if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+      } else {
+        setIsSpeaking(false);
+        if (isRec && !silenceTimerRef.current) {
+          silenceTimerRef.current = setTimeout(() => {
+            if (mediaRecorderRef.current?.state !== 'inactive') { mediaRecorderRef.current!.stop(); setIsRecording(false); }
+            silenceTimerRef.current = null;
+          }, 3000);
+        }
+      }
     };
   };
 
+  // ── Recording ────────────────────────────────────────────────────
   const startRecordingAnswer = () => {
+    stopSpeaking(); // stop TTS before recording starts
     if (videoRef.current?.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
-      const mr = new MediaRecorder(stream,{mimeType:'video/webm'});
+      const mr = new MediaRecorder(stream, { mimeType: 'video/webm' });
       mediaRecorderRef.current = mr;
-      mr.ondataavailable = e => { if(e.data.size>0)chunksRef.current.push(e.data); };
+      mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       mr.onstop = async () => {
         setIsProcessingVideo(true);
-        const blob = new Blob(chunksRef.current,{type:'video/webm'});
-        chunksRef.current=[];
-        const fn=`${userId}-q${currentQuestionIndex+1}-${Date.now()}.webm`;
+        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+        chunksRef.current = [];
+        const fn = `${userId}-q${currentQuestionIndex + 1}-${Date.now()}.webm`;
         try {
-          const {error}=await supabase.storage.from('video_chunks').upload(fn,blob);
-          if(error)throw error;
-          const {data}=supabase.storage.from('video_chunks').getPublicUrl(fn);
+          const { error } = await supabase.storage.from('video_chunks').upload(fn, blob);
+          if (error) throw error;
+          const { data } = supabase.storage.from('video_chunks').getPublicUrl(fn);
           videoUrlsRef.current.push(data.publicUrl);
-        } catch(e){console.error(e);}
-        finally{setIsProcessingVideo(false);moveToNextQuestion();}
+        } catch (e) { console.error(e); }
+        finally { setIsProcessingVideo(false); moveToNextQuestion(); }
       };
       mr.start(); setIsRecording(true);
     }
   };
 
   const moveToNextQuestion = () => {
-    if (currentQuestionIndex<aiQuestions.length-1) setCurrentQuestionIndex(p=>p+1);
-    else { setIsInterviewComplete(true); activeStreamRef.current?.getTracks().forEach(t=>t.stop()); window.speechSynthesis?.cancel(); analyzeFinalResults(); }
+    if (currentQuestionIndex < aiQuestions.length - 1) {
+      setCurrentQuestionIndex(p => p + 1);
+    } else {
+      setIsInterviewComplete(true);
+      activeStreamRef.current?.getTracks().forEach(t => t.stop());
+      stopSpeaking();
+      analyzeFinalResults();
+    }
   };
 
+  // ── Analysis + save ──────────────────────────────────────────────
   const analyzeFinalResults = async () => {
     setIsAnalyzing(true);
     try {
-      const lastUrl = videoUrlsRef.current[videoUrlsRef.current.length-1];
-      const lastQ = aiQuestions[aiQuestions.length-1];
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL||'http://localhost:8000'}/analyze-video`,{
-        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_url:lastUrl,question:lastQ})
+      const lastUrl = videoUrlsRef.current[videoUrlsRef.current.length - 1];
+      const lastQ = aiQuestions[aiQuestions.length - 1];
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}/analyze-video`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ video_url: lastUrl, question: lastQ })
       });
-      if(!response.ok) throw new Error("Failed to analyze video");
+      if (!response.ok) throw new Error("Failed to analyze video");
       const data = await response.json();
       setFinalScores(data);
-      const overall=Math.round((data.content_score??0)*0.6+(data.eye_contact_score??0)*0.2+(data.posture_score??0)*0.2);
-      const {data:{session}}=await supabase.auth.getSession();
-      if(session){
+      const overall = Math.round((data.content_score ?? 0) * 0.6 + (data.eye_contact_score ?? 0) * 0.2 + (data.posture_score ?? 0) * 0.2);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
         await supabase.from('interview_sessions').insert({
-          user_id:session.user.id,overall_score:overall,speech_score:data.content_score??0,
-          eye_contact_score:data.eye_contact_score??0,posture_score:data.posture_score??0,
-          feedback:data.feedback??'',questions:aiQuestions.map(q=>({text:q,score:Math.round(data.content_score??70)})),
+          user_id: session.user.id, overall_score: overall,
+          speech_score: data.content_score ?? 0,
+          eye_contact_score: data.eye_contact_score ?? 0,
+          posture_score: data.posture_score ?? 0,
+          feedback: data.feedback ?? '',
+          questions: aiQuestions.map(q => ({ text: q, score: Math.round(data.content_score ?? 70) })),
         });
       }
-    } catch(e){console.error(e);alert("Failed to analyze interview.");}
-    finally{setIsAnalyzing(false);}
+    } catch (e) { console.error(e); alert("Failed to analyze interview."); }
+    finally { setIsAnalyzing(false); }
   };
 
-  const S=<style>{`
-    @keyframes spin{to{transform:rotate(360deg)}}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-    @keyframes fadeLeft{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
-    @keyframes fadeRight{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
-    @keyframes scaleIn{from{opacity:0;transform:scale(0.93)}to{opacity:1;transform:scale(1)}}
-    @keyframes popIn{0%{transform:scale(0.6);opacity:0}70%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
-    @keyframes gradShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-    @keyframes pulseDot{0%,100%{opacity:1}50%{opacity:0.4}}
-    @keyframes recPulse{0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,0.4)}50%{box-shadow:0 0 0 8px rgba(22,163,74,0)}}
-    .btn-h{transition:transform 0.15s,box-shadow 0.15s}
-    .btn-h:hover{transform:translateY(-1px)}
-  `}</style>;
+  // ── Styles ───────────────────────────────────────────────────────
+  const S = (
+    <style>{`
+      @keyframes spin { to{transform:rotate(360deg)} }
+      @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+      @keyframes fadeLeft { from{opacity:0;transform:translateX(-16px)} to{opacity:1;transform:none} }
+      @keyframes fadeRight { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:none} }
+      @keyframes scaleIn { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
+      @keyframes popIn { 0%{transform:scale(0.6);opacity:0} 70%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
+      @keyframes pulseDot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
+      @keyframes recPulse { 0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,0.5)} 50%{box-shadow:0 0 0 10px rgba(22,163,74,0)} }
+      @keyframes gradShift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+      @keyframes orb1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,-20px)} }
+      @keyframes soundWave { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(1.8)} }
+      .btn-h { transition:transform 0.15s,box-shadow 0.15s,filter 0.15s; }
+      .btn-h:hover { transform:translateY(-2px); filter:brightness(1.08); }
+      .mute-btn { background:none; border:1px solid #1e3a1e; border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:6px; }
+      .mute-btn:hover { border-color:#22c55e; background:rgba(22,163,74,0.08); }
+      .replay-btn { background:none; border:none; color:#22c55e; font-size:12px; cursor:pointer; padding:4px 8px; border-radius:6px; transition:background 0.15s; }
+      .replay-btn:hover { background:rgba(22,163,74,0.1); }
+    `}</style>
+  );
 
-  // Loading
-  if(isInitializing) return(
-    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'#f8fafc',color:'#0f172a'}}>
+  // ── 1. Loading ───────────────────────────────────────────────────
+  if (isInitializing) return (
+    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,#050f05 0%,#0a1f0a 100%)', color:'#fff', position:'relative', overflow:'hidden' }}>
       {S}
-      <div style={{position:'relative',width:56,height:56,marginBottom:20}}>
-        <div style={{position:'absolute',inset:0,border:'4px solid #dcfce7',borderTopColor:'#16a34a',borderRadius:'50%',animation:'spin 0.9s linear infinite'}}/>
-        <div style={{position:'absolute',inset:8,border:'4px solid #dcfce7',borderTopColor:'#22c55e',borderRadius:'50%',animation:'spin 1.3s linear infinite reverse'}}/>
+      <div style={{ position:'absolute', width:'400px', height:'400px', top:'-100px', left:'-50px', background:'radial-gradient(circle,rgba(22,163,74,0.1) 0%,transparent 70%)', borderRadius:'50%', animation:'orb1 10s ease-in-out infinite', pointerEvents:'none' }} />
+      <div style={{ position:'relative', width:'64px', height:'64px', marginBottom:'24px' }}>
+        <div style={{ position:'absolute', inset:0, border:'4px solid #1e3a1e', borderTopColor:'#16a34a', borderRadius:'50%', animation:'spin 0.9s linear infinite' }} />
+        <div style={{ position:'absolute', inset:'8px', border:'4px solid #1e3a1e', borderTopColor:'#22c55e', borderRadius:'50%', animation:'spin 1.3s linear infinite reverse' }} />
       </div>
-      <h2 style={{margin:'0 0 5px',fontSize:18,fontWeight:700,animation:'fadeUp 0.5s ease'}}>AI is reading your resume...</h2>
-      <p style={{color:'#9ca3af',fontSize:13,animation:'fadeUp 0.5s 0.1s ease both'}}>Generating custom interview questions</p>
+      <h2 style={{ margin:'0 0 6px', fontSize:'20px', fontWeight:700, animation:'fadeUp 0.5s ease' }}>AI is reading your resume...</h2>
+      <p style={{ color:'#6b8f6b', fontSize:'14px', animation:'fadeUp 0.5s 0.1s ease both' }}>Generating custom interview questions</p>
     </div>
   );
 
-  // Results
-  if(isInterviewComplete){
-    const overall=finalScores?Math.round((finalScores.content_score??0)*0.6+(finalScores.eye_contact_score??0)*0.2+(finalScores.posture_score??0)*0.2):0;
-    return(
-      <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#f8fafc',padding:24,fontFamily:'system-ui,-apple-system,sans-serif'}}>
+  // ── 2. Results ───────────────────────────────────────────────────
+  if (isInterviewComplete) {
+    const overall = finalScores ? Math.round((finalScores.content_score ?? 0) * 0.6 + (finalScores.eye_contact_score ?? 0) * 0.2 + (finalScores.posture_score ?? 0) * 0.2) : 0;
+    return (
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,#050f05 0%,#0a1f0a 100%)', color:'#fff', padding:'24px', position:'relative', overflow:'hidden', fontFamily:'system-ui,-apple-system,sans-serif' }}>
         {S}
-        {isAnalyzing?(
-          <div style={{textAlign:'center'}}>
-            <div style={{position:'relative',width:64,height:64,margin:'0 auto 20px'}}>
-              <div style={{position:'absolute',inset:0,border:'5px solid #dcfce7',borderTopColor:'#16a34a',borderRadius:'50%',animation:'spin 1s linear infinite'}}/>
-              <div style={{position:'absolute',inset:9,border:'5px solid #dcfce7',borderTopColor:'#22c55e',borderRadius:'50%',animation:'spin 1.4s linear infinite reverse'}}/>
+        <div style={{ position:'absolute', width:'450px', height:'450px', top:'-120px', right:'-100px', background:'radial-gradient(circle,rgba(22,163,74,0.1) 0%,transparent 70%)', borderRadius:'50%', animation:'orb1 11s ease-in-out infinite', pointerEvents:'none' }} />
+        {isAnalyzing ? (
+          <div style={{ textAlign:'center', position:'relative', zIndex:1 }}>
+            <div style={{ position:'relative', width:'76px', height:'76px', margin:'0 auto 24px' }}>
+              <div style={{ position:'absolute', inset:0, border:'5px solid #1e3a1e', borderTopColor:'#16a34a', borderRadius:'50%', animation:'spin 1s linear infinite' }} />
+              <div style={{ position:'absolute', inset:'10px', border:'5px solid #1e3a1e', borderTopColor:'#22c55e', borderRadius:'50%', animation:'spin 1.4s linear infinite reverse' }} />
             </div>
-            <h2 style={{color:'#0f172a',fontSize:22,fontWeight:700,margin:'0 0 6px',animation:'fadeUp 0.5s ease'}}>Analyzing your performance...</h2>
-            <p style={{color:'#9ca3af',animation:'fadeUp 0.5s 0.1s ease both'}}>Running Computer Vision models</p>
+            <h2 style={{ color:'#f8fafc', fontSize:'24px', fontWeight:700, margin:'0 0 8px', animation:'fadeUp 0.5s ease' }}>Analyzing your body language...</h2>
+            <p style={{ color:'#6b8f6b', animation:'fadeUp 0.5s 0.1s ease both' }}>Running Computer Vision models</p>
           </div>
-        ):(
-          <div style={{background:'#fff',padding:'40px 44px',borderRadius:24,maxWidth:580,width:'100%',textAlign:'center',border:'1px solid #e2e8f0',boxShadow:'0 20px 60px rgba(0,0,0,0.08)',animation:'scaleIn 0.4s cubic-bezier(0.22,1,0.36,1)'}}>
-            <div style={{width:68,height:68,borderRadius:'50%',background:'#dcfce7',border:'2px solid #86efac',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px',fontSize:30,animation:'popIn 0.5s cubic-bezier(0.22,1,0.36,1)',boxShadow:'0 4px 20px rgba(22,163,74,0.15)'}}>🎉</div>
-            <h2 style={{margin:'0 0 5px',fontSize:26,fontWeight:800,color:'#0f172a',animation:'fadeUp 0.5s ease'}}>Interview Complete</h2>
-            <p style={{color:'#9ca3af',marginBottom:24,fontSize:13,animation:'fadeUp 0.5s 0.08s ease both'}}>Your AI performance review</p>
-
-            <div style={{margin:'0 auto 22px',animation:'scaleIn 0.5s 0.12s ease both'}}>
-              <svg width={120} height={120} viewBox="0 0 120 120">
-                <circle cx={60} cy={60} r={50} fill="none" stroke="#f0fdf4" strokeWidth={9}/>
-                <circle cx={60} cy={60} r={50} fill="none" stroke="#16a34a" strokeWidth={9} strokeLinecap="round"
-                  strokeDasharray={2*Math.PI*50} strokeDashoffset={2*Math.PI*50*(1-overall/100)}
-                  style={{transform:'rotate(-90deg)',transformOrigin:'60px 60px',transition:'stroke-dashoffset 1.3s cubic-bezier(0.22,1,0.36,1)'}}/>
-                <text x={60} y={67} textAnchor="middle" fontSize={26} fontWeight={800} fill="#0f172a">{overall}%</text>
+        ) : (
+          <div style={{ background:'#0d1a0d', padding:'44px 48px', borderRadius:'28px', maxWidth:'620px', width:'100%', textAlign:'center', border:'1px solid #1e3a1e', boxShadow:'0 30px 70px -15px rgba(0,0,0,0.7)', position:'relative', zIndex:1, animation:'scaleIn 0.4s cubic-bezier(0.22,1,0.36,1)' }}>
+            <div style={{ width:'76px', height:'76px', borderRadius:'50%', background:'rgba(22,163,74,0.15)', border:'2px solid rgba(34,197,94,0.5)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px', fontSize:'34px', animation:'popIn 0.6s cubic-bezier(0.22,1,0.36,1)', boxShadow:'0 0 30px rgba(22,163,74,0.3)' }}>🎉</div>
+            <h2 style={{ margin:'0 0 6px', fontSize:'28px', fontWeight:800, color:'#f8fafc', animation:'fadeUp 0.5s ease' }}>Interview Complete</h2>
+            <p style={{ color:'#6b8f6b', marginBottom:'28px', fontSize:'14px', animation:'fadeUp 0.5s 0.08s ease both' }}>Your AI performance review</p>
+            <div style={{ margin:'0 auto 24px', animation:'scaleIn 0.5s 0.12s cubic-bezier(0.22,1,0.36,1) both' }}>
+              <svg width="130" height="130" viewBox="0 0 130 130" style={{ filter:'drop-shadow(0 0 12px rgba(22,163,74,0.4))' }}>
+                <circle cx="65" cy="65" r="56" fill="none" stroke="#0d1a0d" strokeWidth="10" />
+                <circle cx="65" cy="65" r="56" fill="none" stroke="#16a34a" strokeWidth="10" strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 56} strokeDashoffset={2 * Math.PI * 56 * (1 - overall / 100)}
+                  style={{ transform:'rotate(-90deg)', transformOrigin:'65px 65px', transition:'stroke-dashoffset 1.4s cubic-bezier(0.22,1,0.36,1)' }} />
+                <text x="65" y="72" textAnchor="middle" fontSize="30" fontWeight="800" fill="#f8fafc">{overall}%</text>
               </svg>
-              <p style={{margin:'3px 0 0',fontSize:11,color:'#9ca3af'}}>Overall score</p>
+              <p style={{ margin:'4px 0 0', fontSize:'12px', color:'#6b8f6b' }}>Overall score</p>
             </div>
-
-            <div style={{background:'#f0fdf4',padding:'15px 18px',borderRadius:13,border:'1px solid #bbf7d0',marginBottom:13,animation:'fadeUp 0.5s 0.2s ease both'}}>
-              <div style={{fontSize:11,color:'#6b7280',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Answer Quality (Speech)</div>
-              <div style={{fontSize:36,fontWeight:800,color:'#15803d'}}>{finalScores?.content_score}%</div>
+            <div style={{ background:'#050f05', padding:'18px 20px', borderRadius:'16px', border:'1px solid #22c55e', marginBottom:'16px', animation:'fadeUp 0.5s 0.2s ease both' }}>
+              <div style={{ fontSize:'12px', color:'#6b8f6b', textTransform:'uppercase', letterSpacing:'1px', marginBottom:'8px' }}>Answer Quality (Speech)</div>
+              <div style={{ fontSize:'40px', fontWeight:800, color:'#22c55e' }}>{finalScores?.content_score}%</div>
             </div>
-
-            <div style={{display:'flex',gap:12,marginBottom:20}}>
-              {[{label:'Eye Contact',v:finalScores?.eye_contact_score,d:'0.28s'},{label:'Posture',v:finalScores?.posture_score,d:'0.32s'}].map(({label,v,d})=>(
-                <div key={label} style={{flex:1,background:'#f8fafc',padding:'14px',borderRadius:12,border:'1px solid #e2e8f0',animation:`fadeUp 0.5s ${d} ease both`}}>
-                  <div style={{fontSize:11,color:'#9ca3af',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>{label}</div>
-                  <div style={{fontSize:26,fontWeight:800,color:'#16a34a'}}>{v}%</div>
+            <div style={{ display:'flex', gap:'14px', marginBottom:'24px' }}>
+              {[{ label:'Eye Contact', value:finalScores?.eye_contact_score, delay:'0.28s' }, { label:'Posture', value:finalScores?.posture_score, delay:'0.32s' }].map(({ label, value, delay }) => (
+                <div key={label} style={{ flex:1, background:'#050f05', padding:'16px', borderRadius:'14px', border:'1px solid #1e3a1e', animation:`fadeUp 0.5s ${delay} ease both` }}>
+                  <div style={{ fontSize:'11px', color:'#6b8f6b', textTransform:'uppercase', letterSpacing:'1px', marginBottom:'8px' }}>{label}</div>
+                  <div style={{ fontSize:'30px', fontWeight:800, color:'#22c55e' }}>{value}%</div>
                 </div>
               ))}
             </div>
-
-            <div style={{background:'#fffbeb',padding:'14px 16px',borderRadius:12,borderLeft:'3px solid #f59e0b',textAlign:'left',marginBottom:22,animation:'fadeUp 0.5s 0.36s ease both'}}>
-              <h4 style={{margin:'0 0 5px',color:'#0f172a',fontSize:13}}>AI Feedback</h4>
-              <p style={{margin:0,color:'#374151',fontSize:12,lineHeight:1.6}}>{finalScores?.feedback}</p>
+            <div style={{ background:'#050f05', padding:'18px', borderRadius:'14px', borderLeft:'4px solid #16a34a', textAlign:'left', marginBottom:'26px', animation:'fadeUp 0.5s 0.36s ease both' }}>
+              <h4 style={{ margin:'0 0 6px', color:'#f8fafc', fontSize:'14px' }}>AI Feedback</h4>
+              <p style={{ margin:0, color:'#9ab89a', fontSize:'13px', lineHeight:1.6 }}>{finalScores?.feedback}</p>
             </div>
-
-            <button onClick={()=>router.push('/dashboard')} className="btn-h" style={{width:'100%',padding:15,background:'linear-gradient(135deg,#16a34a,#22c55e)',backgroundSize:'200% 200%',animation:'gradShift 4s ease infinite',color:'white',border:'none',borderRadius:12,fontSize:15,fontWeight:700,cursor:'pointer',boxShadow:'0 4px 16px rgba(22,163,74,0.25)'}}>
+            <button onClick={() => router.push('/dashboard')} className="btn-h" style={{ width:'100%', padding:'16px', background:'linear-gradient(135deg, #16a34a, #22c55e)', backgroundSize:'200% 200%', animation:'gradShift 4s ease infinite', color:'white', border:'none', borderRadius:'14px', fontSize:'16px', fontWeight:700, cursor:'pointer', boxShadow:'0 8px 24px rgba(22,163,74,0.3)' }}>
               Return to Dashboard
             </button>
           </div>
@@ -241,94 +313,157 @@ export default function InterviewRoom() {
     );
   }
 
-  // Active interview
-  const volBars=Math.min(5,Math.floor(volumeLevel/16));
-  return(
-    <div style={{minHeight:'100vh',background:'#f8fafc',color:'#0f172a',padding:'28px 24px',fontFamily:'system-ui,-apple-system,sans-serif'}}>
-      {S}
+  // ── 3. Active interview ──────────────────────────────────────────
+  const volBars = Math.min(5, Math.floor(volumeLevel / 16));
 
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:'1px solid #e2e8f0',paddingBottom:14,marginBottom:24,maxWidth:1200,margin:'0 auto 24px'}}>
-        <div style={{display:'flex',alignItems:'center',gap:9}}>
-          <div style={{width:8,height:8,borderRadius:'50%',background:'#16a34a',animation:'pulseDot 2s ease infinite'}}/>
-          <h2 style={{margin:0,color:'#0f172a',fontSize:17,fontWeight:700}}>Technical Interview</h2>
+  return (
+    <div style={{ minHeight:'100vh', background:'linear-gradient(135deg,#050f05 0%,#0a1f0a 100%)', color:'#fff', padding:'36px 24px', fontFamily:'system-ui,-apple-system,sans-serif', position:'relative', overflow:'hidden' }}>
+      {S}
+      <div style={{ position:'absolute', width:'500px', height:'500px', top:'-200px', left:'20%', background:'radial-gradient(circle,rgba(22,163,74,0.06) 0%,transparent 70%)', borderRadius:'50%', pointerEvents:'none' }} />
+
+      {/* Header */}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #1e3a1e', paddingBottom:'16px', marginBottom:'28px', maxWidth:'1200px', margin:'0 auto 28px', position:'relative', zIndex:1, animation:'fadeUp 0.5s ease' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+          <div style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#16a34a', animation:'pulseDot 2s ease infinite' }} />
+          <h2 style={{ margin:0, color:'#f8fafc', fontSize:'18px', fontWeight:700 }}>Technical Interview</h2>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:9}}>
-          <div style={{display:'flex',gap:3}}>
-            {aiQuestions.map((_,i)=>(
-              <div key={i} style={{width:i===currentQuestionIndex?18:5,height:5,borderRadius:99,background:i<currentQuestionIndex?'#16a34a':i===currentQuestionIndex?'#22c55e':'#e2e8f0',transition:'all 0.3s cubic-bezier(0.22,1,0.36,1)'}}/>
+        <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+          {/* Progress dots */}
+          <div style={{ display:'flex', gap:'4px' }}>
+            {aiQuestions.map((_, i) => (
+              <div key={i} style={{ width:i === currentQuestionIndex ? '20px' : '6px', height:'6px', borderRadius:'99px', background:i < currentQuestionIndex ? '#16a34a' : i === currentQuestionIndex ? '#22c55e' : '#1e3a1e', transition:'all 0.3s cubic-bezier(0.22,1,0.36,1)' }} />
             ))}
           </div>
-          <div style={{background:'#fff',padding:'5px 12px',borderRadius:20,fontSize:12,border:'1px solid #e2e8f0',fontWeight:600,color:'#0f172a',boxShadow:'0 1px 2px rgba(0,0,0,0.04)'}}>
-            {currentQuestionIndex+1} of {aiQuestions.length}
+          <div style={{ background:'#0d1a0d', padding:'7px 14px', borderRadius:'20px', fontSize:'13px', border:'1px solid #1e3a1e', fontWeight:600 }}>
+            {currentQuestionIndex + 1} of {aiQuestions.length}
           </div>
+
+          {/* ── Mute / unmute button ── */}
+          <button onClick={toggleMute} className="mute-btn"
+            style={{ color: muted ? '#6b8f6b' : '#22c55e', borderColor: muted ? '#1e3a1e' : 'rgba(34,197,94,0.4)' }}
+            title={muted ? 'Unmute AI voice' : 'Mute AI voice'}>
+            {muted ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/>
+                <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/>
+                <line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
+            )}
+            {muted ? 'Muted' : 'Speaking'}
+          </button>
         </div>
       </div>
 
-      <div style={{display:'flex',gap:32,maxWidth:1200,margin:'0 auto',flexWrap:'wrap'}}>
-        {/* Left */}
-        <div style={{flex:1,minWidth:320,display:'flex',flexDirection:'column',justifyContent:'center',animation:'fadeLeft 0.5s 0.1s ease both'}}>
-          <h3 style={{color:'#16a34a',textTransform:'uppercase',letterSpacing:'1.5px',fontSize:11,fontWeight:700,margin:'0 0 10px'}}>Current AI Question</h3>
-          <p key={currentQuestionIndex} style={{fontSize:24,lineHeight:1.45,fontWeight:700,color:'#0f172a',minHeight:100,margin:0,animation:'fadeUp 0.35s ease'}}>
+      <div style={{ display:'flex', gap:'36px', maxWidth:'1200px', margin:'0 auto', flexWrap:'wrap', position:'relative', zIndex:1 }}>
+
+        {/* Left: question + controls */}
+        <div style={{ flex:1, minWidth:'320px', display:'flex', flexDirection:'column', justifyContent:'center', animation:'fadeLeft 0.5s 0.1s ease both' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px' }}>
+            <h3 style={{ color:'#22c55e', textTransform:'uppercase', letterSpacing:'1.5px', fontSize:'12px', fontWeight:700, margin:0 }}>Current AI Question</h3>
+
+            {/* Speaking indicator */}
+            {isSpeakingQuestion && !muted && (
+              <div style={{ display:'flex', alignItems:'flex-end', gap:'2px', height:'14px' }}>
+                {[0,1,2,3].map(i => (
+                  <div key={i} style={{ width:'3px', background:'#22c55e', borderRadius:'2px', height:'8px', animation:`soundWave 0.8s ease-in-out ${i * 0.12}s infinite` }} />
+                ))}
+              </div>
+            )}
+
+            {/* Replay button */}
+            {!isSpeakingQuestion && !muted && (
+              <button className="replay-btn" onClick={() => speakQuestion(aiQuestions[currentQuestionIndex])} title="Replay question">
+                ↺ Replay
+              </button>
+            )}
+          </div>
+
+          <p key={currentQuestionIndex} style={{ fontSize:'26px', lineHeight:'1.45', fontWeight:700, color:'#f8fafc', minHeight:'110px', margin:0, animation:'fadeUp 0.4s ease' }}>
             "{aiQuestions[currentQuestionIndex]}"
           </p>
 
-          <div style={{marginTop:22,padding:20,background:'#fff',borderRadius:14,borderTop:'1px solid #e2e8f0',borderRight:'1px solid #e2e8f0',borderBottom:'1px solid #e2e8f0',borderLeft:isRecording?(isSpeaking?'4px solid #16a34a':'4px solid #f59e0b'):'4px solid #e2e8f0',boxShadow:'0 2px 8px rgba(0,0,0,0.06)',transition:'border-left-color 0.3s ease'}}>
-            {isProcessingVideo?(
-              <div style={{display:'flex',alignItems:'center',gap:12}}>
-                <div style={{width:22,height:22,border:'3px solid #dcfce7',borderTopColor:'#16a34a',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
-                <h4 style={{margin:0,fontSize:15,color:'#15803d',fontWeight:600}}>Securely saving video...</h4>
+          <div style={{
+            marginTop:'26px', padding:'24px', background:'#0d1a0d', borderRadius:'16px',
+            borderTop:'1px solid #1e3a1e', borderRight:'1px solid #1e3a1e', borderBottom:'1px solid #1e3a1e',
+            borderLeft:isRecording ? (isSpeaking ? '4px solid #22c55e' : '4px solid #eab308') : '4px solid #16a34a',
+            transition:'border-left-color 0.3s ease',
+          }}>
+            {isProcessingVideo ? (
+              <div style={{ display:'flex', alignItems:'center', gap:'14px' }}>
+                <div style={{ width:'26px', height:'26px', border:'3px solid #1e3a1e', borderTopColor:'#22c55e', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+                <h4 style={{ margin:0, fontSize:'16px', color:'#22c55e', fontWeight:600 }}>Securely saving video...</h4>
               </div>
-            ):!isRecording?(
+            ) : !isRecording ? (
               <div>
-                <h4 style={{margin:'0 0 12px',fontSize:15,fontWeight:600,color:'#0f172a'}}>Ready for this question?</h4>
-                <button onClick={startRecordingAnswer} className="btn-h" style={{padding:'11px 22px',background:'linear-gradient(135deg,#16a34a,#22c55e)',backgroundSize:'200% 200%',animation:'gradShift 4s ease infinite',color:'white',border:'none',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:14,display:'inline-flex',alignItems:'center',gap:7,boxShadow:'0 3px 12px rgba(22,163,74,0.25)'}}>
-                  <span style={{width:8,height:8,borderRadius:'50%',background:'white'}}/>
+                <h4 style={{ margin:'0 0 14px', fontSize:'16px', fontWeight:600 }}>Ready for this question?</h4>
+                <p style={{ margin:'0 0 14px', fontSize:'12px', color:'#6b8f6b' }}>
+                  {muted ? '🔇 AI voice is muted — click the Speaking button above to enable it' : '🔊 AI will read the question aloud — listen, then record your answer'}
+                </p>
+                <button onClick={startRecordingAnswer} className="btn-h"
+                  style={{ padding:'13px 26px', background:'linear-gradient(135deg, #16a34a, #22c55e)', color:'white', border:'none', borderRadius:'10px', cursor:'pointer', fontWeight:700, fontSize:'15px', display:'inline-flex', alignItems:'center', gap:'8px', boxShadow:'0 6px 18px rgba(22,163,74,0.3)' }}>
+                  <span style={{ width:'10px', height:'10px', borderRadius:'50%', background:'white' }} />
                   Start Recording Answer
                 </button>
               </div>
-              
-            ):(
+            ) : (
               <div>
-                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
-                  <div style={{width:12,height:12,borderRadius:'50%',background:isSpeaking?'#16a34a':'#f59e0b',animation:isSpeaking?'recPulse 1.5s ease infinite':'none'}}/>
-                  <h4 style={{margin:0,fontSize:14,fontWeight:600,color:'#0f172a'}}>{isSpeaking?'AI is listening...':'Silence detected (saving in 3s)...'}</h4>
+                <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'10px' }}>
+                  <div style={{ width:'14px', height:'14px', borderRadius:'50%', background:isSpeaking ? '#22c55e' : '#eab308', animation:isSpeaking ? 'recPulse 1.5s ease infinite' : 'none' }} />
+                  <h4 style={{ margin:0, fontSize:'16px', fontWeight:600 }}>{isSpeaking ? 'AI is listening...' : 'Silence detected (saving in 3s)...'}</h4>
                 </div>
-                <div style={{display:'flex',gap:3,alignItems:'flex-end',height:16,marginBottom:8,marginLeft:22}}>
-                  {[0,1,2,3,4].map(i=>(
-                    <div key={i} style={{width:4,borderRadius:2,height:isSpeaking&&i<volBars?`${7+i*3}px`:'3px',background:isSpeaking&&i<volBars?'#16a34a':'#e2e8f0',transition:'height 0.1s,background 0.2s'}}/>
+                <div style={{ display:'flex', gap:'3px', alignItems:'flex-end', height:'20px', marginBottom:'10px', marginLeft:'26px' }}>
+                  {[0, 1, 2, 3, 4].map(i => (
+                    <div key={i} style={{ width:'4px', borderRadius:'2px', height:isSpeaking && i < volBars ? `${8 + i * 4}px` : '4px', background:isSpeaking && i < volBars ? '#22c55e' : '#1e3a1e', transition:'height 0.1s ease, background 0.2s ease' }} />
                   ))}
                 </div>
-                <p style={{color:'#9ca3af',fontSize:12,margin:0,marginLeft:22}}>Stop talking when finished.</p>
+                <p style={{ color:'#6b8f6b', fontSize:'13px', margin:0, marginLeft:'26px' }}>Stop talking when finished. The AI handles the rest.</p>
               </div>
             )}
           </div>
         </div>
-        <button
-  onClick={() => {
-    setMuted(m => !m);
-    if (!muted) window.speechSynthesis?.cancel();
-  }}
-  style={{ background:'none', border:'1px solid #e2e8f0', borderRadius:8, padding:'5px 10px', fontSize:12, cursor:'pointer', color:'#6b7280' }}
->
-  {muted ? '🔇 Muted' : '🔊 Speaking'}
-</button>
 
-        {/* Right — camera */}
-        <div style={{flex:1,minWidth:300,animation:'fadeRight 0.5s 0.2s ease both'}}>
-          <div style={{background:'#000',borderRadius:18,overflow:'hidden',position:'relative',aspectRatio:'16/9',borderTop:isRecording?'2px solid #16a34a':'2px solid #e2e8f0',borderRight:isRecording?'2px solid #16a34a':'2px solid #e2e8f0',borderBottom:isRecording?'2px solid #16a34a':'2px solid #e2e8f0',borderLeft:isRecording?'2px solid #16a34a':'2px solid #e2e8f0',boxShadow:isRecording?'0 0 0 3px rgba(22,163,74,0.1),0 12px 30px rgba(0,0,0,0.12)':'0 12px 30px rgba(0,0,0,0.1)',transition:'box-shadow 0.3s'}}>
-            {!hasCameraAccess&&(
-              <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',color:'#6b7280',gap:8,fontSize:12}}>
-                <div style={{width:24,height:24,border:'2px solid #dcfce7',borderTopColor:'#16a34a',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
-                Activating camera...
+        {/* Right: camera */}
+        <div style={{ flex:1, minWidth:'320px', animation:'fadeRight 0.5s 0.2s ease both' }}>
+          <div style={{
+            background:'#000', borderRadius:'20px', overflow:'hidden', position:'relative',
+            aspectRatio:'16/9',
+            borderTop:isRecording ? '2px solid #22c55e' : '2px solid #1e3a1e',
+            borderRight:isRecording ? '2px solid #22c55e' : '2px solid #1e3a1e',
+            borderBottom:isRecording ? '2px solid #22c55e' : '2px solid #1e3a1e',
+            borderLeft:isRecording ? '2px solid #22c55e' : '2px solid #1e3a1e',
+            boxShadow:isRecording ? '0 0 0 4px rgba(22,163,74,0.12), 0 20px 40px -10px rgba(0,0,0,0.7)' : '0 20px 40px -10px rgba(0,0,0,0.7)',
+            transition:'border-color 0.3s, box-shadow 0.3s',
+          }}>
+            {!hasCameraAccess && (
+              <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', color:'#6b8f6b', gap:'10px' }}>
+                <div style={{ width:'28px', height:'28px', border:'3px solid #1e3a1e', borderTopColor:'#16a34a', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+                Activating secure camera feed...
               </div>
             )}
-            {isRecording&&(
-              <div style={{position:'absolute',top:12,left:12,display:'flex',alignItems:'center',gap:5,background:'rgba(0,0,0,0.55)',padding:'4px 9px',borderRadius:99,backdropFilter:'blur(4px)',zIndex:2}}>
-                <span style={{width:7,height:7,borderRadius:'50%',background:'#22c55e',animation:'pulseDot 1.2s ease infinite'}}/>
-                <span style={{fontSize:10,fontWeight:700,color:'#86efac'}}>REC</span>
+            {isRecording && (
+              <div style={{ position:'absolute', top:'14px', left:'14px', display:'flex', alignItems:'center', gap:'6px', background:'rgba(0,0,0,0.65)', padding:'5px 10px', borderRadius:'99px', backdropFilter:'blur(4px)', zIndex:2 }}>
+                <span style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#22c55e', animation:'pulseDot 1.2s ease infinite' }} />
+                <span style={{ fontSize:'11px', fontWeight:700, color:'#86efac' }}>REC</span>
               </div>
             )}
-            <video ref={videoRef} autoPlay playsInline muted style={{width:'100%',height:'100%',objectFit:'cover',transform:'scaleX(-1)'}}/>
+            {/* Speaking indicator on camera */}
+            {isSpeakingQuestion && !muted && !isRecording && (
+              <div style={{ position:'absolute', top:'14px', right:'14px', display:'flex', alignItems:'center', gap:'6px', background:'rgba(0,0,0,0.65)', padding:'5px 10px', borderRadius:'99px', backdropFilter:'blur(4px)', zIndex:2 }}>
+                <div style={{ display:'flex', alignItems:'flex-end', gap:'2px', height:'12px' }}>
+                  {[0,1,2,3].map(i => (
+                    <div key={i} style={{ width:'3px', background:'#22c55e', borderRadius:'2px', height:'7px', animation:`soundWave 0.8s ease-in-out ${i*0.12}s infinite` }} />
+                  ))}
+                </div>
+                <span style={{ fontSize:'11px', fontWeight:700, color:'#86efac' }}>AI Speaking</span>
+              </div>
+            )}
+            <video ref={videoRef} autoPlay playsInline muted style={{ width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)' }} />
           </div>
         </div>
       </div>
