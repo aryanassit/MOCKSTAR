@@ -87,7 +87,7 @@ export default function LandingPage() {
         <div style={{ display:'flex', alignItems:'center', gap:'4px' }}>
           <a href="#features" className="nav-link">Features</a>
           <a href="#how-it-works" className="nav-link">How it works</a>
-          <a href="#pricing" className="nav-link">Pricing</a>
+         
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
           <button className="nav-link" onClick={() => router.push('/login')}>Sign in</button>
