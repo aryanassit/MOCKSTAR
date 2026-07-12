@@ -87,6 +87,7 @@ export default function LandingPage() {
         <div style={{ display:'flex', alignItems:'center', gap:'4px' }}>
           <a href="#features" className="nav-link">Features</a>
           <a href="#how-it-works" className="nav-link">How it works</a>
+          <a href="#who-it's for" className="nav-link">WHO IT'S FOR</a>
          
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
