@@ -467,6 +467,20 @@ export default function InterviewRoom() {
           </div>
         </div>
       </div>
+
+    {/* --- AI LOADING OVERLAY --- */}
+      {isAnalyzing && (
+        <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
+          <div className="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-blue-500 mb-6"></div>
+          <h2 className="text-3xl font-bold text-white mb-3 animate-pulse">
+            Analyzing Your Interview...
+          </h2>
+          <p className="text-gray-300 text-lg">
+            Gemini is evaluating your eye contact, posture, and speech clarity.
+          </p>
+        </div>
+      )}
+
     </div>
   );
 }
