@@ -24,10 +24,15 @@ def generate_speech_feedback(temp_video_path: str, question: str) -> dict:
 
         print("👉 Generating AI Speech Grade...")
         prompt = f"""
-        You are an expert technical recruiter. Watch and listen to this video of a candidate answering this exact interview question:
-        "{question}"
+        Act as a STRICT Senior Technical Recruiter. Watch this candidate answer the question: "{question}"
+        
+        CRITICAL GRADING RUBRIC:
+        - 90-100: Exceptional, detailed, perfectly structured (e.g., STAR method), highly technical.
+        - 70-89: Good, but missing some depth, clarity, or technical accuracy.
+        - 40-69: Vague, very short, or heavily relies on filler words.
+        - 10-39: Completely missed the point or barely spoke.
 
-        Evaluate their spoken answer based on technical accuracy, clarity, and relevance.
+        Do NOT be overly polite. Be harsh but fair. Penalize short answers heavily.
         Return your analysis inside a strict JSON layout containing exactly these two keys: "content_score" and "speech_feedback".
         """
 
