@@ -21,14 +21,14 @@ app = FastAPI(title="MOCKSTAR AI Backend", version="2.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # 2. Register the modular router paths
-app.include_router(interview_router, prefix="/api/v1")
+app.include_router(interview_router)
 
 @app.get("/")
 def read_root():
