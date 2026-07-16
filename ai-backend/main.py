@@ -21,7 +21,11 @@ app = FastAPI(title="MOCKSTAR AI Backend", version="2.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://mockstar-7414.vercel.app",
+        "https://mockstar-7414-git-main-aryanassits-projects.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

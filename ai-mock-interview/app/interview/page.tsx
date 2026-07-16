@@ -43,13 +43,15 @@ export default function InterviewRoom() {
     // Try to pick a natural voice
     const trySpeak = () => {
       const voices = window.speechSynthesis.getVoices();
-      const preferred = voices.find(v =>
-        v.name.includes('Google') ||
-        v.name.includes('Samantha') ||
-        v.name.includes('Daniel') ||
-        v.name.includes('Karen') ||
-        (v.lang === 'en-US' && v.localService)
-      );
+      const preferred =
+  voices.find(v => v.name.includes('Samantha')) ||        // macOS female
+  voices.find(v => v.name.includes('Karen')) ||           // macOS female
+  voices.find(v => v.name.includes('Zira')) ||            // Windows female
+  voices.find(v => v.name.includes('Google UK English Female')) ||
+  voices.find(v => v.name.includes('Google US English') && v.name.includes('Female')) ||
+             // generic fallback
+  voices.find(v => v.lang === 'en-US' && v.name.toLowerCase().includes('female')) ||
+  voices.find(v => v.lang === 'en-GB');                   // British English tends to be female by default
       if (preferred) utterance.voice = preferred;
       utterance.onend = () => setIsSpeakingQuestion(false);
       utterance.onerror = () => setIsSpeakingQuestion(false);
@@ -230,30 +232,30 @@ export default function InterviewRoom() {
       @keyframes scaleIn { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
       @keyframes popIn { 0%{transform:scale(0.6);opacity:0} 70%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
       @keyframes pulseDot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
-      @keyframes recPulse { 0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,0.5)} 50%{box-shadow:0 0 0 10px rgba(22,163,74,0)} }
+      @keyframes recPulse { 0%,100%{box-shadow:0 0 0 0 rgba(160,171,151,0.5)} 50%{box-shadow:0 0 0 10px rgba(160,171,151,0)} }
       @keyframes gradShift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
       @keyframes orb1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,-20px)} }
       @keyframes soundWave { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(1.8)} }
       .btn-h { transition:transform 0.15s,box-shadow 0.15s,filter 0.15s; }
       .btn-h:hover { transform:translateY(-2px); filter:brightness(1.08); }
-      .mute-btn { background:none; border:1px solid #1e3a1e; border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:6px; }
-      .mute-btn:hover { border-color:#22c55e; background:rgba(22,163,74,0.08); }
-      .replay-btn { background:none; border:none; color:#22c55e; font-size:12px; cursor:pointer; padding:4px 8px; border-radius:6px; transition:background 0.15s; }
-      .replay-btn:hover { background:rgba(22,163,74,0.1); }
+      .mute-btn { background:none; border:1px solid #D8C7B3; border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:6px; }
+      .mute-btn:hover { border-color:#8F9B88; background:rgba(160,171,151,0.08); }
+      .replay-btn { background:none; border:none; color:#8F9B88; font-size:12px; cursor:pointer; padding:4px 8px; border-radius:6px; transition:background 0.15s; }
+      .replay-btn:hover { background:rgba(160,171,151,0.1); }
     `}</style>
   );
 
   // ── 1. Loading ───────────────────────────────────────────────────
   if (isInitializing) return (
-    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,#050f05 0%,#0a1f0a 100%)', color:'#fff', position:'relative', overflow:'hidden' }}>
+    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,#F3E8DA 0%,#EFE3D2 100%)', color:'#2E2A25', position:'relative', overflow:'hidden' }}>
       {S}
-      <div style={{ position:'absolute', width:'400px', height:'400px', top:'-100px', left:'-50px', background:'radial-gradient(circle,rgba(22,163,74,0.1) 0%,transparent 70%)', borderRadius:'50%', animation:'orb1 10s ease-in-out infinite', pointerEvents:'none' }} />
+      <div style={{ position:'absolute', width:'400px', height:'400px', top:'-100px', left:'-50px', background:'radial-gradient(circle,rgba(160,171,151,0.1) 0%,transparent 70%)', borderRadius:'50%', animation:'orb1 10s ease-in-out infinite', pointerEvents:'none' }} />
       <div style={{ position:'relative', width:'64px', height:'64px', marginBottom:'24px' }}>
-        <div style={{ position:'absolute', inset:0, border:'4px solid #1e3a1e', borderTopColor:'#16a34a', borderRadius:'50%', animation:'spin 0.9s linear infinite' }} />
-        <div style={{ position:'absolute', inset:'8px', border:'4px solid #1e3a1e', borderTopColor:'#22c55e', borderRadius:'50%', animation:'spin 1.3s linear infinite reverse' }} />
+        <div style={{ position:'absolute', inset:0, border:'4px solid #D8C7B3', borderTopColor:'#A0AB97', borderRadius:'50%', animation:'spin 0.9s linear infinite' }} />
+        <div style={{ position:'absolute', inset:'8px', border:'4px solid #D8C7B3', borderTopColor:'#8F9B88', borderRadius:'50%', animation:'spin 1.3s linear infinite reverse' }} />
       </div>
       <h2 style={{ margin:'0 0 6px', fontSize:'20px', fontWeight:700, animation:'fadeUp 0.5s ease' }}>AI is reading your resume...</h2>
-      <p style={{ color:'#6b8f6b', fontSize:'14px', animation:'fadeUp 0.5s 0.1s ease both' }}>Generating custom interview questions</p>
+      <p style={{ color:'#6F6A63', fontSize:'14px', animation:'fadeUp 0.5s 0.1s ease both' }}>Generating custom interview questions</p>
     </div>
   );
 
@@ -261,50 +263,50 @@ export default function InterviewRoom() {
   if (isInterviewComplete) {
     const overall = finalScores ? Math.round((finalScores.content_score ?? 0) * 0.6 + (finalScores.eye_contact_score ?? 0) * 0.2 + (finalScores.posture_score ?? 0) * 0.2) : 0;
     return (
-      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,#050f05 0%,#0a1f0a 100%)', color:'#fff', padding:'24px', position:'relative', overflow:'hidden', fontFamily:'system-ui,-apple-system,sans-serif' }}>
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,#F3E8DA 0%,#EFE3D2 100%)', color:'#2E2A25', padding:'24px', position:'relative', overflow:'hidden', fontFamily:'system-ui,-apple-system,sans-serif' }}>
         {S}
-        <div style={{ position:'absolute', width:'450px', height:'450px', top:'-120px', right:'-100px', background:'radial-gradient(circle,rgba(22,163,74,0.1) 0%,transparent 70%)', borderRadius:'50%', animation:'orb1 11s ease-in-out infinite', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', width:'450px', height:'450px', top:'-120px', right:'-100px', background:'radial-gradient(circle,rgba(160,171,151,0.1) 0%,transparent 70%)', borderRadius:'50%', animation:'orb1 11s ease-in-out infinite', pointerEvents:'none' }} />
         {isAnalyzing ? (
           <div style={{ textAlign:'center', position:'relative', zIndex:1 }}>
             <div style={{ position:'relative', width:'76px', height:'76px', margin:'0 auto 24px' }}>
-              <div style={{ position:'absolute', inset:0, border:'5px solid #1e3a1e', borderTopColor:'#16a34a', borderRadius:'50%', animation:'spin 1s linear infinite' }} />
-              <div style={{ position:'absolute', inset:'10px', border:'5px solid #1e3a1e', borderTopColor:'#22c55e', borderRadius:'50%', animation:'spin 1.4s linear infinite reverse' }} />
+              <div style={{ position:'absolute', inset:0, border:'5px solid #D8C7B3', borderTopColor:'#A0AB97', borderRadius:'50%', animation:'spin 1s linear infinite' }} />
+              <div style={{ position:'absolute', inset:'10px', border:'5px solid #D8C7B3', borderTopColor:'#8F9B88', borderRadius:'50%', animation:'spin 1.4s linear infinite reverse' }} />
             </div>
-            <h2 style={{ color:'#f8fafc', fontSize:'24px', fontWeight:700, margin:'0 0 8px', animation:'fadeUp 0.5s ease' }}>Analyzing your body language...</h2>
-            <p style={{ color:'#6b8f6b', animation:'fadeUp 0.5s 0.1s ease both' }}>Running Computer Vision models</p>
+            <h2 style={{ color:'#2E2A25', fontSize:'24px', fontWeight:700, margin:'0 0 8px', animation:'fadeUp 0.5s ease' }}>Analyzing your body language...</h2>
+            <p style={{ color:'#6F6A63', animation:'fadeUp 0.5s 0.1s ease both' }}>Running Computer Vision models</p>
           </div>
         ) : (
-          <div style={{ background:'#0d1a0d', padding:'44px 48px', borderRadius:'28px', maxWidth:'620px', width:'100%', textAlign:'center', border:'1px solid #1e3a1e', boxShadow:'0 30px 70px -15px rgba(0,0,0,0.7)', position:'relative', zIndex:1, animation:'scaleIn 0.4s cubic-bezier(0.22,1,0.36,1)' }}>
-            <div style={{ width:'76px', height:'76px', borderRadius:'50%', background:'rgba(22,163,74,0.15)', border:'2px solid rgba(34,197,94,0.5)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px', fontSize:'34px', animation:'popIn 0.6s cubic-bezier(0.22,1,0.36,1)', boxShadow:'0 0 30px rgba(22,163,74,0.3)' }}>🎉</div>
-            <h2 style={{ margin:'0 0 6px', fontSize:'28px', fontWeight:800, color:'#f8fafc', animation:'fadeUp 0.5s ease' }}>Interview Complete</h2>
-            <p style={{ color:'#6b8f6b', marginBottom:'28px', fontSize:'14px', animation:'fadeUp 0.5s 0.08s ease both' }}>Your AI performance review</p>
+          <div style={{ background:'#EFE3D2', padding:'44px 48px', borderRadius:'28px', maxWidth:'620px', width:'100%', textAlign:'center', border:'1px solid #D8C7B3', boxShadow:'0 30px 70px -15px rgba(0,0,0,0.7)', position:'relative', zIndex:1, animation:'scaleIn 0.4s cubic-bezier(0.22,1,0.36,1)' }}>
+            <div style={{ width:'76px', height:'76px', borderRadius:'50%', background:'rgba(160,171,151,0.15)', border:'2px solid rgba(160,171,151,0.5)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px', fontSize:'34px', animation:'popIn 0.6s cubic-bezier(0.22,1,0.36,1)', boxShadow:'0 0 30px rgba(160,171,151,0.3)' }}>🎉</div>
+            <h2 style={{ margin:'0 0 6px', fontSize:'28px', fontWeight:800, color:'#2E2A25', animation:'fadeUp 0.5s ease' }}>Interview Complete</h2>
+            <p style={{ color:'#6F6A63', marginBottom:'28px', fontSize:'14px', animation:'fadeUp 0.5s 0.08s ease both' }}>Your AI performance review</p>
             <div style={{ margin:'0 auto 24px', animation:'scaleIn 0.5s 0.12s cubic-bezier(0.22,1,0.36,1) both' }}>
-              <svg width="130" height="130" viewBox="0 0 130 130" style={{ filter:'drop-shadow(0 0 12px rgba(22,163,74,0.4))' }}>
-                <circle cx="65" cy="65" r="56" fill="none" stroke="#0d1a0d" strokeWidth="10" />
-                <circle cx="65" cy="65" r="56" fill="none" stroke="#16a34a" strokeWidth="10" strokeLinecap="round"
+              <svg width="130" height="130" viewBox="0 0 130 130" style={{ filter:'drop-shadow(0 0 12px rgba(160,171,151,0.4))' }}>
+                <circle cx="65" cy="65" r="56" fill="none" stroke="#EFE3D2" strokeWidth="10" />
+                <circle cx="65" cy="65" r="56" fill="none" stroke="#A0AB97" strokeWidth="10" strokeLinecap="round"
                   strokeDasharray={2 * Math.PI * 56} strokeDashoffset={2 * Math.PI * 56 * (1 - overall / 100)}
                   style={{ transform:'rotate(-90deg)', transformOrigin:'65px 65px', transition:'stroke-dashoffset 1.4s cubic-bezier(0.22,1,0.36,1)' }} />
-                <text x="65" y="72" textAnchor="middle" fontSize="30" fontWeight="800" fill="#f8fafc">{overall}%</text>
+                <text x="65" y="72" textAnchor="middle" fontSize="30" fontWeight="800" fill="#2E2A25">{overall}%</text>
               </svg>
-              <p style={{ margin:'4px 0 0', fontSize:'12px', color:'#6b8f6b' }}>Overall score</p>
+              <p style={{ margin:'4px 0 0', fontSize:'12px', color:'#6F6A63' }}>Overall score</p>
             </div>
-            <div style={{ background:'#050f05', padding:'18px 20px', borderRadius:'16px', border:'1px solid #22c55e', marginBottom:'16px', animation:'fadeUp 0.5s 0.2s ease both' }}>
-              <div style={{ fontSize:'12px', color:'#6b8f6b', textTransform:'uppercase', letterSpacing:'1px', marginBottom:'8px' }}>Answer Quality (Speech)</div>
-              <div style={{ fontSize:'40px', fontWeight:800, color:'#22c55e' }}>{finalScores?.content_score}%</div>
+            <div style={{ background:'#F3E8DA', padding:'18px 20px', borderRadius:'16px', border:'1px solid #8F9B88', marginBottom:'16px', animation:'fadeUp 0.5s 0.2s ease both' }}>
+              <div style={{ fontSize:'12px', color:'#6F6A63', textTransform:'uppercase', letterSpacing:'1px', marginBottom:'8px' }}>Answer Quality (Speech)</div>
+              <div style={{ fontSize:'40px', fontWeight:800, color:'#8F9B88' }}>{finalScores?.content_score}%</div>
             </div>
             <div style={{ display:'flex', gap:'14px', marginBottom:'24px' }}>
               {[{ label:'Eye Contact', value:finalScores?.eye_contact_score, delay:'0.28s' }, { label:'Posture', value:finalScores?.posture_score, delay:'0.32s' }].map(({ label, value, delay }) => (
-                <div key={label} style={{ flex:1, background:'#050f05', padding:'16px', borderRadius:'14px', border:'1px solid #1e3a1e', animation:`fadeUp 0.5s ${delay} ease both` }}>
-                  <div style={{ fontSize:'11px', color:'#6b8f6b', textTransform:'uppercase', letterSpacing:'1px', marginBottom:'8px' }}>{label}</div>
-                  <div style={{ fontSize:'30px', fontWeight:800, color:'#22c55e' }}>{value}%</div>
+                <div key={label} style={{ flex:1, background:'#F3E8DA', padding:'16px', borderRadius:'14px', border:'1px solid #D8C7B3', animation:`fadeUp 0.5s ${delay} ease both` }}>
+                  <div style={{ fontSize:'11px', color:'#6F6A63', textTransform:'uppercase', letterSpacing:'1px', marginBottom:'8px' }}>{label}</div>
+                  <div style={{ fontSize:'30px', fontWeight:800, color:'#8F9B88' }}>{value}%</div>
                 </div>
               ))}
             </div>
-            <div style={{ background:'#050f05', padding:'18px', borderRadius:'14px', borderLeft:'4px solid #16a34a', textAlign:'left', marginBottom:'26px', animation:'fadeUp 0.5s 0.36s ease both' }}>
-              <h4 style={{ margin:'0 0 6px', color:'#f8fafc', fontSize:'14px' }}>AI Feedback</h4>
-              <p style={{ margin:0, color:'#9ab89a', fontSize:'13px', lineHeight:1.6 }}>{finalScores?.feedback}</p>
+            <div style={{ background:'#F3E8DA', padding:'18px', borderRadius:'14px', borderLeft:'4px solid #A0AB97', textAlign:'left', marginBottom:'26px', animation:'fadeUp 0.5s 0.36s ease both' }}>
+              <h4 style={{ margin:'0 0 6px', color:'#2E2A25', fontSize:'14px' }}>AI Feedback</h4>
+              <p style={{ margin:0, color:'#6F6A63', fontSize:'13px', lineHeight:1.6 }}>{finalScores?.feedback}</p>
             </div>
-            <button onClick={() => router.push('/dashboard')} className="btn-h" style={{ width:'100%', padding:'16px', background:'linear-gradient(135deg, #16a34a, #22c55e)', backgroundSize:'200% 200%', animation:'gradShift 4s ease infinite', color:'white', border:'none', borderRadius:'14px', fontSize:'16px', fontWeight:700, cursor:'pointer', boxShadow:'0 8px 24px rgba(22,163,74,0.3)' }}>
+            <button onClick={() => router.push('/dashboard')} className="btn-h" style={{ width:'100%', padding:'16px', background:'linear-gradient(135deg, #A0AB97, #8F9B88)', backgroundSize:'200% 200%', animation:'gradShift 4s ease infinite', color:'#2E2A25', border:'none', borderRadius:'14px', fontSize:'16px', fontWeight:700, cursor:'pointer', boxShadow:'0 8px 24px rgba(160,171,151,0.3)' }}>
               Return to Dashboard
             </button>
           </div>
@@ -317,30 +319,30 @@ export default function InterviewRoom() {
   const volBars = Math.min(5, Math.floor(volumeLevel / 16));
 
   return (
-    <div style={{ minHeight:'100vh', background:'linear-gradient(135deg,#050f05 0%,#0a1f0a 100%)', color:'#fff', padding:'36px 24px', fontFamily:'system-ui,-apple-system,sans-serif', position:'relative', overflow:'hidden' }}>
+    <div style={{ minHeight:'100vh', background:'linear-gradient(135deg,#F3E8DA 0%,#EFE3D2 100%)', color:'#2E2A25', padding:'36px 24px', fontFamily:'system-ui,-apple-system,sans-serif', position:'relative', overflow:'hidden' }}>
       {S}
-      <div style={{ position:'absolute', width:'500px', height:'500px', top:'-200px', left:'20%', background:'radial-gradient(circle,rgba(22,163,74,0.06) 0%,transparent 70%)', borderRadius:'50%', pointerEvents:'none' }} />
+      <div style={{ position:'absolute', width:'500px', height:'500px', top:'-200px', left:'20%', background:'radial-gradient(circle,rgba(160,171,151,0.06) 0%,transparent 70%)', borderRadius:'50%', pointerEvents:'none' }} />
 
       {/* Header */}
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #1e3a1e', paddingBottom:'16px', marginBottom:'28px', maxWidth:'1200px', margin:'0 auto 28px', position:'relative', zIndex:1, animation:'fadeUp 0.5s ease' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #D8C7B3', paddingBottom:'16px', marginBottom:'28px', maxWidth:'1200px', margin:'0 auto 28px', position:'relative', zIndex:1, animation:'fadeUp 0.5s ease' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-          <div style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#16a34a', animation:'pulseDot 2s ease infinite' }} />
-          <h2 style={{ margin:0, color:'#f8fafc', fontSize:'18px', fontWeight:700 }}>Technical Interview</h2>
+          <div style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#A0AB97', animation:'pulseDot 2s ease infinite' }} />
+          <h2 style={{ margin:0, color:'#2E2A25', fontSize:'18px', fontWeight:700 }}>Technical Interview</h2>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
           {/* Progress dots */}
           <div style={{ display:'flex', gap:'4px' }}>
             {aiQuestions.map((_, i) => (
-              <div key={i} style={{ width:i === currentQuestionIndex ? '20px' : '6px', height:'6px', borderRadius:'99px', background:i < currentQuestionIndex ? '#16a34a' : i === currentQuestionIndex ? '#22c55e' : '#1e3a1e', transition:'all 0.3s cubic-bezier(0.22,1,0.36,1)' }} />
+              <div key={i} style={{ width:i === currentQuestionIndex ? '20px' : '6px', height:'6px', borderRadius:'99px', background:i < currentQuestionIndex ? '#A0AB97' : i === currentQuestionIndex ? '#8F9B88' : '#D8C7B3', transition:'all 0.3s cubic-bezier(0.22,1,0.36,1)' }} />
             ))}
           </div>
-          <div style={{ background:'#0d1a0d', padding:'7px 14px', borderRadius:'20px', fontSize:'13px', border:'1px solid #1e3a1e', fontWeight:600 }}>
+          <div style={{ background:'#EFE3D2', padding:'7px 14px', borderRadius:'20px', fontSize:'13px', border:'1px solid #D8C7B3', fontWeight:600 }}>
             {currentQuestionIndex + 1} of {aiQuestions.length}
           </div>
 
           {/* ── Mute / unmute button ── */}
           <button onClick={toggleMute} className="mute-btn"
-            style={{ color: muted ? '#6b8f6b' : '#22c55e', borderColor: muted ? '#1e3a1e' : 'rgba(34,197,94,0.4)' }}
+            style={{ color: muted ? '#6F6A63' : '#8F9B88', borderColor: muted ? '#D8C7B3' : 'rgba(160,171,151,0.4)' }}
             title={muted ? 'Unmute AI voice' : 'Mute AI voice'}>
             {muted ? (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -365,13 +367,13 @@ export default function InterviewRoom() {
         {/* Left: question + controls */}
         <div style={{ flex:1, minWidth:'320px', display:'flex', flexDirection:'column', justifyContent:'center', animation:'fadeLeft 0.5s 0.1s ease both' }}>
           <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px' }}>
-            <h3 style={{ color:'#22c55e', textTransform:'uppercase', letterSpacing:'1.5px', fontSize:'12px', fontWeight:700, margin:0 }}>Current AI Question</h3>
+            <h3 style={{ color:'#8F9B88', textTransform:'uppercase', letterSpacing:'1.5px', fontSize:'12px', fontWeight:700, margin:0 }}>Current AI Question</h3>
 
             {/* Speaking indicator */}
             {isSpeakingQuestion && !muted && (
               <div style={{ display:'flex', alignItems:'flex-end', gap:'2px', height:'14px' }}>
                 {[0,1,2,3].map(i => (
-                  <div key={i} style={{ width:'3px', background:'#22c55e', borderRadius:'2px', height:'8px', animation:`soundWave 0.8s ease-in-out ${i * 0.12}s infinite` }} />
+                  <div key={i} style={{ width:'3px', background:'#8F9B88', borderRadius:'2px', height:'8px', animation:`soundWave 0.8s ease-in-out ${i * 0.12}s infinite` }} />
                 ))}
               </div>
             )}
@@ -384,29 +386,29 @@ export default function InterviewRoom() {
             )}
           </div>
 
-          <p key={currentQuestionIndex} style={{ fontSize:'26px', lineHeight:'1.45', fontWeight:700, color:'#f8fafc', minHeight:'110px', margin:0, animation:'fadeUp 0.4s ease' }}>
+          <p key={currentQuestionIndex} style={{ fontSize:'26px', lineHeight:'1.45', fontWeight:700, color:'#2E2A25', minHeight:'110px', margin:0, animation:'fadeUp 0.4s ease' }}>
             "{aiQuestions[currentQuestionIndex]}"
           </p>
 
           <div style={{
-            marginTop:'26px', padding:'24px', background:'#0d1a0d', borderRadius:'16px',
-            borderTop:'1px solid #1e3a1e', borderRight:'1px solid #1e3a1e', borderBottom:'1px solid #1e3a1e',
-            borderLeft:isRecording ? (isSpeaking ? '4px solid #22c55e' : '4px solid #eab308') : '4px solid #16a34a',
+            marginTop:'26px', padding:'24px', background:'#EFE3D2', borderRadius:'16px',
+            borderTop:'1px solid #D8C7B3', borderRight:'1px solid #D8C7B3', borderBottom:'1px solid #D8C7B3',
+            borderLeft:isRecording ? (isSpeaking ? '4px solid #8F9B88' : '4px solid #eab308') : '4px solid #A0AB97',
             transition:'border-left-color 0.3s ease',
           }}>
             {isProcessingVideo ? (
               <div style={{ display:'flex', alignItems:'center', gap:'14px' }}>
-                <div style={{ width:'26px', height:'26px', border:'3px solid #1e3a1e', borderTopColor:'#22c55e', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
-                <h4 style={{ margin:0, fontSize:'16px', color:'#22c55e', fontWeight:600 }}>Securely saving video...</h4>
+                <div style={{ width:'26px', height:'26px', border:'3px solid #D8C7B3', borderTopColor:'#8F9B88', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+                <h4 style={{ margin:0, fontSize:'16px', color:'#8F9B88', fontWeight:600 }}>Securely saving video...</h4>
               </div>
             ) : !isRecording ? (
               <div>
                 <h4 style={{ margin:'0 0 14px', fontSize:'16px', fontWeight:600 }}>Ready for this question?</h4>
-                <p style={{ margin:'0 0 14px', fontSize:'12px', color:'#6b8f6b' }}>
+                <p style={{ margin:'0 0 14px', fontSize:'12px', color:'#6F6A63' }}>
                   {muted ? '🔇 AI voice is muted — click the Speaking button above to enable it' : '🔊 AI will read the question aloud — listen, then record your answer'}
                 </p>
                 <button onClick={startRecordingAnswer} className="btn-h"
-                  style={{ padding:'13px 26px', background:'linear-gradient(135deg, #16a34a, #22c55e)', color:'white', border:'none', borderRadius:'10px', cursor:'pointer', fontWeight:700, fontSize:'15px', display:'inline-flex', alignItems:'center', gap:'8px', boxShadow:'0 6px 18px rgba(22,163,74,0.3)' }}>
+                  style={{ padding:'13px 26px', background:'linear-gradient(135deg, #A0AB97, #8F9B88)', color:'#2E2A25', border:'none', borderRadius:'10px', cursor:'pointer', fontWeight:700, fontSize:'15px', display:'inline-flex', alignItems:'center', gap:'8px', boxShadow:'0 6px 18px rgba(160,171,151,0.3)' }}>
                   <span style={{ width:'10px', height:'10px', borderRadius:'50%', background:'white' }} />
                   Start Recording Answer
                 </button>
@@ -414,15 +416,15 @@ export default function InterviewRoom() {
             ) : (
               <div>
                 <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'10px' }}>
-                  <div style={{ width:'14px', height:'14px', borderRadius:'50%', background:isSpeaking ? '#22c55e' : '#eab308', animation:isSpeaking ? 'recPulse 1.5s ease infinite' : 'none' }} />
+                  <div style={{ width:'14px', height:'14px', borderRadius:'50%', background:isSpeaking ? '#8F9B88' : '#eab308', animation:isSpeaking ? 'recPulse 1.5s ease infinite' : 'none' }} />
                   <h4 style={{ margin:0, fontSize:'16px', fontWeight:600 }}>{isSpeaking ? 'AI is listening...' : 'Silence detected (saving in 3s)...'}</h4>
                 </div>
                 <div style={{ display:'flex', gap:'3px', alignItems:'flex-end', height:'20px', marginBottom:'10px', marginLeft:'26px' }}>
                   {[0, 1, 2, 3, 4].map(i => (
-                    <div key={i} style={{ width:'4px', borderRadius:'2px', height:isSpeaking && i < volBars ? `${8 + i * 4}px` : '4px', background:isSpeaking && i < volBars ? '#22c55e' : '#1e3a1e', transition:'height 0.1s ease, background 0.2s ease' }} />
+                    <div key={i} style={{ width:'4px', borderRadius:'2px', height:isSpeaking && i < volBars ? `${8 + i * 4}px` : '4px', background:isSpeaking && i < volBars ? '#8F9B88' : '#D8C7B3', transition:'height 0.1s ease, background 0.2s ease' }} />
                   ))}
                 </div>
-                <p style={{ color:'#6b8f6b', fontSize:'13px', margin:0, marginLeft:'26px' }}>Stop talking when finished. The AI handles the rest.</p>
+                <p style={{ color:'#6F6A63', fontSize:'13px', margin:0, marginLeft:'26px' }}>Stop talking when finished. The AI handles the rest.</p>
               </div>
             )}
           </div>
@@ -431,25 +433,25 @@ export default function InterviewRoom() {
         {/* Right: camera */}
         <div style={{ flex:1, minWidth:'320px', animation:'fadeRight 0.5s 0.2s ease both' }}>
           <div style={{
-            background:'#000', borderRadius:'20px', overflow:'hidden', position:'relative',
+            background:'#2E2A25', borderRadius:'20px', overflow:'hidden', position:'relative',
             aspectRatio:'16/9',
-            borderTop:isRecording ? '2px solid #22c55e' : '2px solid #1e3a1e',
-            borderRight:isRecording ? '2px solid #22c55e' : '2px solid #1e3a1e',
-            borderBottom:isRecording ? '2px solid #22c55e' : '2px solid #1e3a1e',
-            borderLeft:isRecording ? '2px solid #22c55e' : '2px solid #1e3a1e',
-            boxShadow:isRecording ? '0 0 0 4px rgba(22,163,74,0.12), 0 20px 40px -10px rgba(0,0,0,0.7)' : '0 20px 40px -10px rgba(0,0,0,0.7)',
+            borderTop:isRecording ? '2px solid #8F9B88' : '2px solid #D8C7B3',
+            borderRight:isRecording ? '2px solid #8F9B88' : '2px solid #D8C7B3',
+            borderBottom:isRecording ? '2px solid #8F9B88' : '2px solid #D8C7B3',
+            borderLeft:isRecording ? '2px solid #8F9B88' : '2px solid #D8C7B3',
+            boxShadow:isRecording ? '0 0 0 4px rgba(160,171,151,0.12), 0 20px 40px -10px rgba(0,0,0,0.7)' : '0 20px 40px -10px rgba(0,0,0,0.7)',
             transition:'border-color 0.3s, box-shadow 0.3s',
           }}>
             {!hasCameraAccess && (
-              <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', color:'#6b8f6b', gap:'10px' }}>
-                <div style={{ width:'28px', height:'28px', border:'3px solid #1e3a1e', borderTopColor:'#16a34a', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+              <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', color:'#6F6A63', gap:'10px' }}>
+                <div style={{ width:'28px', height:'28px', border:'3px solid #D8C7B3', borderTopColor:'#A0AB97', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
                 Activating secure camera feed...
               </div>
             )}
             {isRecording && (
               <div style={{ position:'absolute', top:'14px', left:'14px', display:'flex', alignItems:'center', gap:'6px', background:'rgba(0,0,0,0.65)', padding:'5px 10px', borderRadius:'99px', backdropFilter:'blur(4px)', zIndex:2 }}>
-                <span style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#22c55e', animation:'pulseDot 1.2s ease infinite' }} />
-                <span style={{ fontSize:'11px', fontWeight:700, color:'#86efac' }}>REC</span>
+                <span style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#8F9B88', animation:'pulseDot 1.2s ease infinite' }} />
+                <span style={{ fontSize:'11px', fontWeight:700, color:'#A0AB97' }}>REC</span>
               </div>
             )}
             {/* Speaking indicator on camera */}
@@ -457,10 +459,10 @@ export default function InterviewRoom() {
               <div style={{ position:'absolute', top:'14px', right:'14px', display:'flex', alignItems:'center', gap:'6px', background:'rgba(0,0,0,0.65)', padding:'5px 10px', borderRadius:'99px', backdropFilter:'blur(4px)', zIndex:2 }}>
                 <div style={{ display:'flex', alignItems:'flex-end', gap:'2px', height:'12px' }}>
                   {[0,1,2,3].map(i => (
-                    <div key={i} style={{ width:'3px', background:'#22c55e', borderRadius:'2px', height:'7px', animation:`soundWave 0.8s ease-in-out ${i*0.12}s infinite` }} />
+                    <div key={i} style={{ width:'3px', background:'#8F9B88', borderRadius:'2px', height:'7px', animation:`soundWave 0.8s ease-in-out ${i*0.12}s infinite` }} />
                   ))}
                 </div>
-                <span style={{ fontSize:'11px', fontWeight:700, color:'#86efac' }}>AI Speaking</span>
+                <span style={{ fontSize:'11px', fontWeight:700, color:'#A0AB97' }}>AI Speaking</span>
               </div>
             )}
             <video ref={videoRef} autoPlay playsInline muted style={{ width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)' }} />
