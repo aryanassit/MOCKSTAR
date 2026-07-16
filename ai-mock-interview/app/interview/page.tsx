@@ -43,13 +43,15 @@ export default function InterviewRoom() {
     // Try to pick a natural voice
     const trySpeak = () => {
       const voices = window.speechSynthesis.getVoices();
-      const preferred = voices.find(v =>
-        v.name.includes('Google') ||
-        v.name.includes('Samantha') ||
-        v.name.includes('Daniel') ||
-        v.name.includes('Karen') ||
-        (v.lang === 'en-US' && v.localService)
-      );
+      const preferred =
+  voices.find(v => v.name.includes('Samantha')) ||        // macOS female
+  voices.find(v => v.name.includes('Karen')) ||           // macOS female
+  voices.find(v => v.name.includes('Zira')) ||            // Windows female
+  voices.find(v => v.name.includes('Google UK English Female')) ||
+  voices.find(v => v.name.includes('Google US English') && v.name.includes('Female')) ||
+  voices.find(v => v.gender === 'female') ||              // generic fallback
+  voices.find(v => v.lang === 'en-US' && v.name.toLowerCase().includes('female')) ||
+  voices.find(v => v.lang === 'en-GB');                   // British English tends to be female by default
       if (preferred) utterance.voice = preferred;
       utterance.onend = () => setIsSpeakingQuestion(false);
       utterance.onerror = () => setIsSpeakingQuestion(false);
