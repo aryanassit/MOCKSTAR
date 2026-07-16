@@ -1,18 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --bg-base:    #050f05;
-  --bg-card:    #0d1a0d;
-  --bg-raised:  #122012;
-  --border:     #1e3a1e;
-  --border-hi:  #2d5a2d;
-  --green:      #16a34a;
-  --green-hi:   #22c55e;
-  --green-glow: rgba(22,163,74,0.35);
-  --green-dim:  rgba(22,163,74,0.1);
-  --text:       #f8fafc;
-  --text-muted: #6b8f6b;
-  --text-faint: #4a6f4a;
+  --background:     #F3E8DA;
+  --surface:        #EFE3D2;
+  --sidebar:        #75624E;
+  --primary:        #A0AB97;
+  --primary-hover:  #8F9B88;
+  --border:         #D8C7B3;
+  --text:           #2E2A25;
+  --muted:          #6F6A63;
+
+  /* legacy aliases kept so nothing breaks */
+  --bg-base:    var(--background);
+  --bg-card:    var(--surface);
+  --bg-raised:  var(--surface);
+  --border-hi:  var(--sidebar);
+  --green:      var(--primary);
+  --green-hi:   var(--primary-hover);
+  --green-glow: rgba(160,171,151,0.35);
+  --green-dim:  rgba(160,171,151,0.1);
+  --text-muted: var(--muted);
+  --text-faint: var(--muted);
 }
 
 body {
@@ -30,7 +38,7 @@ body {
 @keyframes gradShift   { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
 @keyframes pulseDot    { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
 @keyframes float       { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-@keyframes borderGlow  { 0%,100%{border-color:#1e3a1e} 50%{border-color:#22c55e} }
+@keyframes borderGlow  { 0%,100%{border-color:#D8C7B3} 50%{border-color:#8F9B88} }
 @keyframes slideDown   { from{opacity:0;max-height:0} to{opacity:1;max-height:600px} }
 @keyframes fadein      { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
 
@@ -48,8 +56,8 @@ body {
 .d-500 { animation-delay:500ms }
 
 .card-g {
-  background: #0d1a0d;
-  border: 1px solid #1e3a1e;
+  background: #EFE3D2;
+  border: 1px solid #D8C7B3;
   border-radius: 14px;
 }
 .card-hover {
@@ -57,23 +65,23 @@ body {
 }
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(22,163,74,0.12);
-  border-color: #2d5a2d !important;
+  box-shadow: 0 12px 32px rgba(160,171,151,0.12);
+  border-color: #75624E !important;
 }
 
 .btn-green {
-  background: linear-gradient(135deg, #16a34a, #22c55e);
+  background: linear-gradient(135deg, #A0AB97, #8F9B88);
   background-size: 200% 200%;
   animation: gradShift 4s ease infinite;
-  color: white;
+  color: #2E2A25;
   border: none;
   border-radius: 10px;
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
-  box-shadow: 0 4px 16px rgba(22,163,74,0.3);
+  box-shadow: 0 4px 16px rgba(160,171,151,0.3);
 }
-.btn-green:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(22,163,74,0.45); }
+.btn-green:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(160,171,151,0.45); }
 .btn-green:active { transform: translateY(0); }
 
 .nav-btn { transition: background 0.15s, color 0.15s, transform 0.12s; }
