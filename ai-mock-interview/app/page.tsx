@@ -82,7 +82,7 @@ export default function LandingPage() {
       <nav style={{ position:'sticky', top:0, zIndex:50, backdropFilter:'blur(16px)', background:'rgba(46,42,37,0.85)', borderBottom:'1px solid rgba(160,171,151,0.1)', padding:'0 48px', display:'flex', alignItems:'center', justifyContent:'space-between', height:'64px' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
           <div style={{ width:'32px', height:'32px', borderRadius:'9px', background:'linear-gradient(135deg,#A0AB97,#8F9B88)', backgroundSize:'200% 200%', animation:'gradShift 4s ease infinite', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, color:'#2E2A25', fontSize:'15px', boxShadow:'0 4px 12px rgba(160,171,151,0.4)' }}>M</div>
-          <span style={{ fontSize:'17px', fontWeight:800, color:'#2E2A25', letterSpacing:'-0.3px' }}>MockStar</span>
+         <span style={{ fontSize:'17px', fontWeight:800, color:'#F3E8DA', letterSpacing:'-0.3px' }}>MockStar</span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:'4px' }}>
           <a href="#features" className="nav-link">Features</a>
