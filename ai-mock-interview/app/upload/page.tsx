@@ -73,13 +73,13 @@ export default function UploadPage() {
       <nav style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 32px', borderBottom:'1px solid rgba(160,171,151,0.1)', backdropFilter:'blur(12px)', background:'rgba(46,42,37,0.8)', position:'relative', zIndex:10, animation:mounted?'fadeUp 0.4s ease both':undefined }}>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           <div style={{ width:30, height:30, borderRadius:8, background:'linear-gradient(135deg,#A0AB97,#8F9B88)', backgroundSize:'200% 200%', animation:'gradShift 4s ease infinite', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, color:'#2E2A25', fontSize:14, boxShadow:'0 4px 12px rgba(160,171,151,0.3)' }}>M</div>
-          <span style={{ fontWeight:700, fontSize:16, color:'#2E2A25' }}>MockStar</span>
-        </div>
-        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          {['dashboard','history'].map(p=>(
-            <button key={p} onClick={()=>router.push(`/${p}`)} style={{ fontSize:13, color:'#6F6A63', background:'none', border:'none', cursor:'pointer', padding:'6px 12px', borderRadius:8, textTransform:'capitalize', transition:'color 0.15s,background 0.15s' }}
-              onMouseEnter={e=>{e.currentTarget.style.color='#2E2A25';e.currentTarget.style.background='rgba(160,171,151,0.08)';}}
-              onMouseLeave={e=>{e.currentTarget.style.color='#6F6A63';e.currentTarget.style.background='none';}}>
+            <span style={{ fontWeight:700, fontSize:16, color:'#F3E8DA' }}>MockStar</span>
+</div>
+<div style={{ display:'flex', alignItems:'center', gap:6 }}>
+  {['dashboard','history'].map(p=>(
+    <button key={p} onClick={()=>router.push(`/${p}`)} style={{ fontSize:13, color:'#D8C7B3', background:'none', border:'none', cursor:'pointer', padding:'6px 12px', borderRadius:8, textTransform:'capitalize', transition:'color 0.15s,background 0.15s' }}
+      onMouseEnter={e=>{e.currentTarget.style.color='#F3E8DA';e.currentTarget.style.background='rgba(160,171,151,0.15);'}}
+      onMouseLeave={e=>{e.currentTarget.style.color='#D8C7B3';e.currentTarget.style.background='none';}}>
               {p.charAt(0).toUpperCase()+p.slice(1)}
             </button>
           ))}
