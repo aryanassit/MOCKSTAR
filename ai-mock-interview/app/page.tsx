@@ -55,8 +55,8 @@ export default function LandingPage() {
         .anim-4 { animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.4s both; }
         .anim-left { animation: fadeLeft 0.7s cubic-bezier(0.22,1,0.36,1) 0.15s both; }
         .anim-right { animation: fadeRight 0.7s cubic-bezier(0.22,1,0.36,1) 0.3s both; }
-        .nav-link { color:rgba(46,42,37,0.6); background:none; border:none; font-size:14px; cursor:pointer; padding:6px 12px; border-radius:8px; transition:color 0.15s,background 0.15s; text-decoration:none; }
-        .nav-link:hover { color:#2E2A25; background:rgba(160,171,151,0.08); }
+        .nav-link { color:#D8C7B3; background:none; border:none; font-size:14px; cursor:pointer; padding:6px 12px; border-radius:8px; transition:color 0.15s,background 0.15s,text-shadow 0.15s; text-decoration:none; text-shadow:0 0 12px rgba(216,199,179,0.25); }
+        .nav-link:hover { color:#F3E8DA; background:rgba(160,171,151,0.15); text-shadow:0 0 16px rgba(243,232,218,0.5); }
         .btn-primary { background:linear-gradient(135deg,#A0AB97,#8F9B88); background-size:200% 200%; animation:gradShift 4s ease infinite; color:white; border:none; border-radius:12px; padding:14px 28px; font-size:15px; font-weight:700; cursor:pointer; transition:transform 0.15s,box-shadow 0.15s; box-shadow:0 4px 20px rgba(160,171,151,0.35); }
         .btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(160,171,151,0.5); }
         .btn-outline { background:transparent; color:#8F9B88; border:1.5px solid #A0AB97; border-radius:12px; padding:13px 28px; font-size:15px; font-weight:700; cursor:pointer; transition:all 0.15s; }
