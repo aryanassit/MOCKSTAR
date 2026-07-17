@@ -223,6 +223,15 @@ function InterviewRoomInner() {
     } catch (e) { console.error(e); alert("Failed to analyze interview."); }
     finally { setIsAnalyzing(false); }
   };
+  
+    export default function InterviewRoom() {
+  return (
+    <Suspense fallback={null}>
+      <InterviewRoomInner />
+    </Suspense>
+  );
+}
+}
 
   // ── Styles ───────────────────────────────────────────────────────
   const S = (
@@ -473,11 +482,4 @@ function InterviewRoomInner() {
       </div>
     </div>
   );
-  export default function InterviewRoom() {
-  return (
-    <Suspense fallback={null}>
-      <InterviewRoomInner />
-    </Suspense>
-  );
-}
-}
+
