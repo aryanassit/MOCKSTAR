@@ -29,7 +29,7 @@ def generate_questions(req: ResumeRequest):
         if not resume_text.strip():
             raise HTTPException(status_code=400, detail="Could not extract text from PDF.")
 
-      if req.round_type == "hr":
+        if req.round_type == "hr":
             prompt = f"""
             Act as an expert HR interviewer. Read the following candidate's resume text:
             ---
@@ -49,6 +49,7 @@ def generate_questions(req: ResumeRequest):
             Based ONLY on their specific skills and past projects, generate exactly 5 challenging technical interview questions.
             Return ONLY the 5 questions separated by newlines, do not include numbers, bullet points, or introductory text.
             """
+
         ai_response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt,
