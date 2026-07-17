@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function InterviewRoom() {
+function InterviewRoomInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const roundType = (searchParams.get('round') === 'hr') ? 'hr' : 'technical';
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -100,7 +102,7 @@ export default function InterviewRoom() {
 
         const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}/generate-questions`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ resume_url: profile.resume_url })
+          body: JSON.stringify({ resume_url: profile.resume_url, round_type: roundType })
         });
         if (!response.ok) throw new Error("Failed to generate AI questions");
         const data = await response.json();
@@ -471,4 +473,11 @@ export default function InterviewRoom() {
       </div>
     </div>
   );
+  export default function InterviewRoom() {
+  return (
+    <Suspense fallback={null}>
+      <InterviewRoomInner />
+    </Suspense>
+  );
+}
 }
