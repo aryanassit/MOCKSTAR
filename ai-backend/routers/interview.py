@@ -29,16 +29,26 @@ def generate_questions(req: ResumeRequest):
         if not resume_text.strip():
             raise HTTPException(status_code=400, detail="Could not extract text from PDF.")
 
-        prompt = f"""
-        Act as an expert technical recruiter. Read the following candidate's resume text:
-        ---
-        {resume_text}
-        ---
-        Based ONLY on their specific skills and past projects, generate exactly 5 challenging interview questions. 
-        Mix behavioral and technical questions. 
-        Return ONLY the 5 questions separated by newlines, do not include numbers, bullet points, or introductory text.
-        """
-
+      if req.round_type == "hr":
+            prompt = f"""
+            Act as an expert HR interviewer. Read the following candidate's resume text:
+            ---
+            {resume_text}
+            ---
+            Generate exactly 5 HR/behavioral interview questions based on their background.
+            Focus on culture fit, communication, teamwork, leadership, conflict resolution, and career motivation.
+            Avoid deep technical questions.
+            Return ONLY the 5 questions separated by newlines, do not include numbers, bullet points, or introductory text.
+            """
+        else:
+            prompt = f"""
+            Act as an expert technical recruiter. Read the following candidate's resume text:
+            ---
+            {resume_text}
+            ---
+            Based ONLY on their specific skills and past projects, generate exactly 5 challenging technical interview questions.
+            Return ONLY the 5 questions separated by newlines, do not include numbers, bullet points, or introductory text.
+            """
         ai_response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt,
