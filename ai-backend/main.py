@@ -28,7 +28,7 @@ app.add_middleware(
 )
 
 # 2. Register the modular router paths
-app.include_router(interview_router, prefix="/api/v1")
+app.include_router(interview_router)
 
 @app.get("/")
 def read_root():
