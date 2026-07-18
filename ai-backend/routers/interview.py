@@ -93,7 +93,8 @@ def analyze_video(req: VideoRequest):
             "content_score": speech_scores["content_score"],
             "eye_contact_score": vision_scores["eye_contact_score"],
             "posture_score": vision_scores["posture_score"],
-            "feedback": speech_scores["speech_feedback"]
+            "feedback": speech_scores["speech_feedback"],
+            "suggested_answer": speech_scores.get("suggested_answer", "")
         }
 
     except Exception as e:
