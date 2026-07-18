@@ -329,7 +329,7 @@ function InterviewRoomInner() {
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #D8C7B3', paddingBottom:'16px', marginBottom:'28px', maxWidth:'1200px', margin:'0 auto 28px', position:'relative', zIndex:1, animation:'fadeUp 0.5s ease' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
           <div style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#A0AB97', animation:'pulseDot 2s ease infinite' }} />
-          <h2 style={{ margin:0, color:'#2E2A25', fontSize:'18px', fontWeight:700 }}>Technical Interview</h2>
+          <h2 style={{ margin:0, color:'#2E2A25', fontSize:'18px', fontWeight:700 }}>{roundType === 'hr' ? 'HR Interview' : 'Technical Interview'}</h2>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
           {/* Progress dots */}
