@@ -27,6 +27,8 @@ function InterviewRoomInner() {
   const [isInterviewComplete, setIsInterviewComplete] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [finalScores, setFinalScores] = useState<any>(null);
+  const [questionResults, setQuestionResults] = useState<any[]>([]);
+  const [analysisProgress, setAnalysisProgress] = useState({ current: 0, total: 0 });
   const [volumeLevel, setVolumeLevel] = useState(0);
 
   // ── Voice feature state ──────────────────────────────────────────
@@ -198,26 +200,71 @@ function InterviewRoomInner() {
   // ── Analysis + save ──────────────────────────────────────────────
   const analyzeFinalResults = async () => {
     setIsAnalyzing(true);
+    const results: any[] = [];
     try {
-      const lastUrl = videoUrlsRef.current[videoUrlsRef.current.length - 1];
-      const lastQ = aiQuestions[aiQuestions.length - 1];
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}/analyze-video`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ video_url: lastUrl, question: lastQ })
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const total = aiQuestions.length;
+      setAnalysisProgress({ current: 0, total });
+
+      // Analyze each question's video one at a time (sequential, not parallel —
+      // avoids hammering the Gemini API and keeps upload order predictable).
+      for (let i = 0; i < total; i++) {
+        setAnalysisProgress({ current: i + 1, total });
+        const videoUrl = videoUrlsRef.current[i];
+        const question = aiQuestions[i];
+        if (!videoUrl) {
+          results.push({ question, content_score: 0, eye_contact_score: 0, posture_score: 0, feedback: 'No recording was saved for this question.', suggested_answer: '' });
+          continue;
+        }
+        try {
+          const response = await fetch(`${backendUrl}/analyze-video`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ video_url: videoUrl, question })
+          });
+          if (!response.ok) throw new Error(`Analysis failed for question ${i + 1}`);
+          const data = await response.json();
+          results.push({
+            question,
+            content_score: data.content_score ?? 0,
+            eye_contact_score: data.eye_contact_score ?? 0,
+            posture_score: data.posture_score ?? 0,
+            feedback: data.feedback ?? '',
+            suggested_answer: data.suggested_answer ?? '',
+          });
+        } catch (err) {
+          console.error(`Question ${i + 1} analysis error:`, err);
+          results.push({ question, content_score: 0, eye_contact_score: 0, posture_score: 0, feedback: 'This answer could not be analyzed due to a technical error.', suggested_answer: '' });
+        }
+      }
+
+      setQuestionResults(results);
+
+      // Overall scores are the real average across every question, not a
+      // single question's result copy-pasted across the board.
+      const avg = (key: string) => results.reduce((sum, r) => sum + (r[key] ?? 0), 0) / (results.length || 1);
+      const avgContent = avg('content_score');
+      const avgEye = avg('eye_contact_score');
+      const avgPosture = avg('posture_score');
+      const overall = Math.round(avgContent * 0.6 + avgEye * 0.2 + avgPosture * 0.2);
+
+      const combinedFeedback = results.map((r, i) => `Q${i + 1}: ${r.feedback}`).join(' ');
+
+      setFinalScores({
+        content_score: Math.round(avgContent),
+        eye_contact_score: Math.round(avgEye),
+        posture_score: Math.round(avgPosture),
+        feedback: combinedFeedback,
       });
-      if (!response.ok) throw new Error("Failed to analyze video");
-      const data = await response.json();
-      setFinalScores(data);
-      const overall = Math.round((data.content_score ?? 0) * 0.6 + (data.eye_contact_score ?? 0) * 0.2 + (data.posture_score ?? 0) * 0.2);
+
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         await supabase.from('interview_sessions').insert({
           user_id: session.user.id, overall_score: overall,
-          speech_score: data.content_score ?? 0,
-          eye_contact_score: data.eye_contact_score ?? 0,
-          posture_score: data.posture_score ?? 0,
-          feedback: data.feedback ?? '',
-          questions: aiQuestions.map(q => ({ text: q, score: Math.round(data.content_score ?? 70) })),
+          speech_score: Math.round(avgContent),
+          eye_contact_score: Math.round(avgEye),
+          posture_score: Math.round(avgPosture),
+          feedback: combinedFeedback,
+          questions: results.map(r => ({ text: r.question, score: Math.round(r.content_score), feedback: r.feedback, suggested_answer: r.suggested_answer })),
         });
       }
     } catch (e) { console.error(e); alert("Failed to analyze interview."); }
@@ -274,11 +321,11 @@ function InterviewRoomInner() {
               <div style={{ position:'absolute', inset:0, border:'5px solid #D8C7B3', borderTopColor:'#A0AB97', borderRadius:'50%', animation:'spin 1s linear infinite' }} />
               <div style={{ position:'absolute', inset:'10px', border:'5px solid #D8C7B3', borderTopColor:'#8F9B88', borderRadius:'50%', animation:'spin 1.4s linear infinite reverse' }} />
             </div>
-            <h2 style={{ color:'#2E2A25', fontSize:'24px', fontWeight:700, margin:'0 0 8px', animation:'fadeUp 0.5s ease' }}>Analyzing your body language...</h2>
-            <p style={{ color:'#6F6A63', animation:'fadeUp 0.5s 0.1s ease both' }}>Running Computer Vision models</p>
+            <h2 style={{ color:'#2E2A25', fontSize:'24px', fontWeight:700, margin:'0 0 8px', animation:'fadeUp 0.5s ease' }}>Analyzing your answers...</h2>
+            <p style={{ color:'#6F6A63', animation:'fadeUp 0.5s 0.1s ease both' }}>{analysisProgress.total > 0 ? `Question ${analysisProgress.current} of ${analysisProgress.total}` : 'Running Computer Vision + Speech models'}</p>
           </div>
         ) : (
-          <div style={{ background:'#EFE3D2', padding:'44px 48px', borderRadius:'28px', maxWidth:'620px', width:'100%', textAlign:'center', border:'1px solid #D8C7B3', boxShadow:'0 30px 70px -15px rgba(0,0,0,0.7)', position:'relative', zIndex:1, animation:'scaleIn 0.4s cubic-bezier(0.22,1,0.36,1)' }}>
+          <div style={{ background:'#EFE3D2', padding:'44px 48px', borderRadius:'28px', maxWidth:'720px', width:'100%', textAlign:'center', border:'1px solid #D8C7B3', boxShadow:'0 30px 70px -15px rgba(0,0,0,0.7)', position:'relative', zIndex:1, animation:'scaleIn 0.4s cubic-bezier(0.22,1,0.36,1)' }}>
             <div style={{ width:'76px', height:'76px', borderRadius:'50%', background:'rgba(160,171,151,0.15)', border:'2px solid rgba(160,171,151,0.5)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px', fontSize:'34px', animation:'popIn 0.6s cubic-bezier(0.22,1,0.36,1)', boxShadow:'0 0 30px rgba(160,171,151,0.3)' }}>🎉</div>
             <h2 style={{ margin:'0 0 6px', fontSize:'28px', fontWeight:800, color:'#2E2A25', animation:'fadeUp 0.5s ease' }}>Interview Complete</h2>
             <p style={{ color:'#6F6A63', marginBottom:'28px', fontSize:'14px', animation:'fadeUp 0.5s 0.08s ease both' }}>Your AI performance review</p>
@@ -308,6 +355,30 @@ function InterviewRoomInner() {
               <h4 style={{ margin:'0 0 6px', color:'#2E2A25', fontSize:'14px' }}>AI Feedback</h4>
               <p style={{ margin:0, color:'#6F6A63', fontSize:'13px', lineHeight:1.6 }}>{finalScores?.feedback}</p>
             </div>
+
+            {questionResults.length > 0 && (
+              <div style={{ textAlign:'left', marginBottom:'26px', animation:'fadeUp 0.5s 0.4s ease both' }}>
+                <h3 style={{ margin:'0 0 14px', fontSize:'16px', fontWeight:800, color:'#2E2A25' }}>Question-by-question breakdown</h3>
+                <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+                  {questionResults.map((r, i) => (
+                    <div key={i} style={{ background:'#F3E8DA', borderRadius:'16px', border:'1px solid #D8C7B3', padding:'18px 20px' }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:'12px', marginBottom:'8px' }}>
+                        <p style={{ margin:0, fontSize:'14px', fontWeight:700, color:'#2E2A25', lineHeight:1.4 }}>Q{i + 1}. {r.question}</p>
+                        <span style={{ flexShrink:0, fontSize:'13px', fontWeight:800, color:'#2E2A25', background:'rgba(160,171,151,0.3)', padding:'3px 10px', borderRadius:'99px', whiteSpace:'nowrap' }}>{Math.round(r.content_score)}%</span>
+                      </div>
+                      <p style={{ margin:'0 0 12px', fontSize:'13px', color:'#6F6A63', lineHeight:1.6 }}>{r.feedback}</p>
+                      {r.suggested_answer && (
+                        <div style={{ background:'#EFE3D2', borderRadius:'10px', borderLeft:'3px solid #8F9B88', padding:'12px 14px' }}>
+                          <p style={{ margin:'0 0 4px', fontSize:'10px', fontWeight:700, color:'#8F9B88', textTransform:'uppercase', letterSpacing:'0.06em' }}>Suggested answer</p>
+                          <p style={{ margin:0, fontSize:'12.5px', color:'#2E2A25', lineHeight:1.6 }}>{r.suggested_answer}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <button onClick={() => router.push('/dashboard')} className="btn-h" style={{ width:'100%', padding:'16px', background:'linear-gradient(135deg, #A0AB97, #8F9B88)', backgroundSize:'200% 200%', animation:'gradShift 4s ease infinite', color:'#2E2A25', border:'none', borderRadius:'14px', fontSize:'16px', fontWeight:700, cursor:'pointer', boxShadow:'0 8px 24px rgba(160,171,151,0.3)' }}>
               Return to Dashboard
             </button>
@@ -474,6 +545,7 @@ function InterviewRoomInner() {
     </div>
   );
 }
+
 export default function InterviewRoom() {
   return (
     <Suspense fallback={null}>
@@ -481,5 +553,3 @@ export default function InterviewRoom() {
     </Suspense>
   );
 }
-
-
