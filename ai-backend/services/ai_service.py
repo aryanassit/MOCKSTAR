@@ -24,7 +24,8 @@ def generate_speech_feedback(temp_video_path: str, question: str) -> dict:
         print(f"⚠️ Video too small ({file_size} bytes) — treating as no answer given.")
         return {
             "content_score": 0,
-            "speech_feedback": "No answer was detected in this recording. Make sure you speak clearly after the question is asked."
+            "speech_feedback": "No answer was detected in this recording. Make sure you speak clearly after the question is asked.",
+            "suggested_answer": ""
         }
 
     gemini_file_name = None
@@ -57,7 +58,13 @@ def generate_speech_feedback(temp_video_path: str, question: str) -> dict:
         a 40-69 "vague" answer — it is a 0-9 non-answer.
 
         Do NOT be overly polite. Be harsh but fair. Penalize short or silent answers heavily.
-        Return your analysis inside a strict JSON layout containing exactly these two keys: "content_score" and "speech_feedback".
+
+        Also write a strong, concise MODEL ANSWER to this same question — a 3-5 sentence example of how a
+        top candidate would answer it well. Write this regardless of how the candidate actually answered,
+        so they have something to learn from.
+
+        Return your analysis inside a strict JSON layout containing exactly these three keys:
+        "content_score", "speech_feedback", and "suggested_answer".
         """
 
         ai_response = client.models.generate_content(
@@ -75,10 +82,12 @@ def generate_speech_feedback(temp_video_path: str, question: str) -> dict:
 
         content_score = int(speech_data.get("content_score", 0))
         speech_feedback = speech_data.get("speech_feedback", "Could not generate detailed feedback for this answer.")
+        suggested_answer = speech_data.get("suggested_answer", "")
 
         return {
             "content_score": content_score,
-            "speech_feedback": speech_feedback
+            "speech_feedback": speech_feedback,
+            "suggested_answer": suggested_answer
         }
 
     except Exception as err:
@@ -87,7 +96,8 @@ def generate_speech_feedback(temp_video_path: str, question: str) -> dict:
         traceback.print_exc()
         return {
             "content_score": 0,
-            "speech_feedback": "AI analysis could not be completed for this answer due to a technical error. This score does not reflect answer quality — check server logs."
+            "speech_feedback": "AI analysis could not be completed for this answer due to a technical error. This score does not reflect answer quality — check server logs.",
+            "suggested_answer": ""
         }
     finally:
         # Clean up the file from Google's servers automatically
