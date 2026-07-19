@@ -6,6 +6,50 @@ import { supabase } from '../../../lib/supabaseClient';
 
 interface Session { id:string; overall_score:number; speech_score:number; eye_contact_score:number; posture_score:number; created_at:string; }
 
+function GrowthChart({ sessions }: { sessions: Session[] }) {
+  const [drawn, setDrawn] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setDrawn(true), 300); return () => clearTimeout(t); }, []);
+
+  // sessions arrive newest-first; reverse for a left-to-right chronological read
+  const chrono = [...sessions].reverse();
+  const w = 560, h = 180, pad = { top: 16, right: 16, bottom: 24, left: 30 };
+  const innerW = w - pad.left - pad.right;
+  const innerH = h - pad.top - pad.bottom;
+  const n = chrono.length;
+  const xFor = (i: number) => (n <= 1 ? pad.left + innerW / 2 : pad.left + (i / (n - 1)) * innerW);
+  const yFor = (v: number) => pad.top + innerH - (v / 100) * innerH;
+
+  const points = chrono.map((s, i) => ({ x: xFor(i), y: yFor(s.overall_score), score: s.overall_score }));
+  const pathD = points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' ');
+  const areaD = points.length
+    ? pathD + ` L ${points[points.length - 1].x.toFixed(1)} ${(pad.top + innerH).toFixed(1)} L ${points[0].x.toFixed(1)} ${(pad.top + innerH).toFixed(1)} Z`
+    : '';
+
+  return (
+    <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{ overflow:'visible', display:'block' }}>
+      <defs>
+        <linearGradient id="growthFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#A0AB97" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#A0AB97" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {[0, 50, 100].map(v => (
+        <g key={v}>
+          <line x1={pad.left} x2={w - pad.right} y1={yFor(v)} y2={yFor(v)} stroke="#D8C7B3" strokeWidth={1} strokeDasharray="3,3" />
+          <text x={pad.left - 8} y={yFor(v) + 3} fontSize={9} fill="#6F6A63" textAnchor="end">{v}</text>
+        </g>
+      ))}
+      <path d={areaD} fill="url(#growthFill)" style={{ opacity:drawn?1:0, transition:'opacity 0.7s ease 0.5s' }} />
+      <path d={pathD} fill="none" stroke="#8F9B88" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
+        style={{ strokeDasharray:3000, strokeDashoffset:drawn?0:3000, transition:'stroke-dashoffset 1.2s cubic-bezier(0.22,1,0.36,1)' }} />
+      {points.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r={3.5} fill="#8F9B88" stroke="#F3E8DA" strokeWidth={1.5}
+          style={{ opacity:drawn?1:0, transition:`opacity 0.3s ease ${0.5 + i * 0.06}s` }} />
+      ))}
+    </svg>
+  );
+}
+
 function useCounter(target:number, duration=1200, delay=0) {
   const [v,setV]=useState(0);
   useEffect(()=>{
@@ -169,6 +213,18 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+
+          {sessions.length >= 2 ? (
+            <div className={`card-hover ${mounted?'anim-fade-up d-500':''}`} style={{ ...card, padding:'1.1rem 1.25rem', marginTop:14, opacity:mounted?undefined:0 }}>
+              <p style={{ margin:'0 0 4px', fontSize:14, fontWeight:600, color:'#2E2A25' }}>Score growth</p>
+              <p style={{ margin:'0 0 10px', fontSize:11, color:'#6F6A63' }}>Overall score across your last {sessions.length} sessions</p>
+              <GrowthChart sessions={sessions} />
+            </div>
+          ) : (
+            <div className={`card-hover ${mounted?'anim-fade-up d-500':''}`} style={{ ...card, padding:'1.1rem 1.25rem', marginTop:14, textAlign:'center', opacity:mounted?undefined:0 }}>
+              <p style={{ margin:0, fontSize:12, color:'#6F6A63' }}>Complete one more interview to start tracking your growth over time.</p>
+            </div>
+          )}
         </>
       )}
     </div>

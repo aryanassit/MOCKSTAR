@@ -14,6 +14,7 @@ export default function UploadPage() {
   const [mounted, setMounted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const [roundType, setRoundType] = useState<'technical'|'hr'>('technical');
 
   useEffect(() => {
     (async () => {
@@ -159,7 +160,7 @@ export default function UploadPage() {
                   </div>
                 ))}
               </div>
-              <button onClick={()=>router.push('/interview')} className="btn-green" style={{ width:'100%', maxWidth:380, padding:16, fontSize:16 }}>Start interview now →</button>
+              <p style={{ margin:'0 0 10px', fontSize:12, fontWeight:700, color:'#6F6A63', textTransform:'uppercase', letterSpacing:'0.06em', width:'100%', maxWidth:380, textAlign:'left' }}>Choose round type</p> <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, width:'100%', maxWidth:380, marginBottom:20 }}>   {[     { key:'technical', icon:'💻', title:'Technical', desc:'Skills, projects, problem-solving' },     { key:'hr', icon:'🤝', title:'HR round', desc:'Behavioral, culture-fit, communication' },   ].map(({key,icon,title,desc})=>{     const active = roundType===key;     return (       <button key={key} onClick={()=>setRoundType(key as 'technical'|'hr')}         style={{ textAlign:'left', cursor:'pointer', padding:'14px 14px', borderRadius:14, border:`1.5px solid ${active?'#8F9B88':'#D8C7B3'}`, background:active?'rgba(160,171,151,0.15)':'#EFE3D2', boxShadow:active?'0 0 0 3px rgba(160,171,151,0.15)':'none', transition:'all 0.15s' }}>         <div style={{ fontSize:20, marginBottom:6 }}>{icon}</div>         <p style={{ margin:'0 0 2px', fontSize:14, fontWeight:700, color:'#2E2A25' }}>{title}</p>         <p style={{ margin:0, fontSize:11, color:'#6F6A63', lineHeight:1.4 }}>{desc}</p>       </button>     );   })} </div> <button onClick={()=>router.push(`/interview?round=${roundType}`)} className="btn-green" style={{ width:'100%', maxWidth:380, padding:16, fontSize:16 }}>Start {roundType==='technical'?'technical':'HR'} interview →</button>
               <button onClick={()=>{setIsUploaded(false);setFileName('');setMessage('');}} style={{ marginTop:10, background:'none', border:'none', color:'#6F6A63', fontSize:13, cursor:'pointer' }}>Use a different resume</button>
             </div>
           )}

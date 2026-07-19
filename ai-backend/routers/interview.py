@@ -1,5 +1,6 @@
 import os
 import io
+import asyncio
 import requests
 import tempfile
 from fastapi import APIRouter, HTTPException
@@ -29,15 +30,26 @@ def generate_questions(req: ResumeRequest):
         if not resume_text.strip():
             raise HTTPException(status_code=400, detail="Could not extract text from PDF.")
 
-        prompt = f"""
-        Act as an expert technical recruiter. Read the following candidate's resume text:
-        ---
-        {resume_text}
-        ---
-        Based ONLY on their specific skills and past projects, generate exactly 5 challenging interview questions. 
-        Mix behavioral and technical questions. 
-        Return ONLY the 5 questions separated by newlines, do not include numbers, bullet points, or introductory text.
-        """
+        if req.round_type == "hr":
+            prompt = f"""
+            Act as an expert HR interviewer. Read the following candidate's resume text:
+            ---
+            {resume_text}
+            ---
+            Generate exactly 5 HR/behavioral interview questions based on their background.
+            Focus on culture fit, communication, teamwork, leadership, conflict resolution, and career motivation.
+            Avoid deep technical questions.
+            Return ONLY the 5 questions separated by newlines, do not include numbers, bullet points, or introductory text.
+            """
+        else:
+            prompt = f"""
+            Act as an expert technical recruiter. Read the following candidate's resume text:
+            ---
+            {resume_text}
+            ---
+            Based ONLY on their specific skills and past projects, generate exactly 5 challenging technical interview questions.
+            Return ONLY the 5 questions separated by newlines, do not include numbers, bullet points, or introductory text.
+            """
 
         ai_response = client.models.generate_content(
             model='gemini-2.5-flash',
@@ -51,7 +63,7 @@ def generate_questions(req: ResumeRequest):
 
 
 @router.post("/analyze-video")
-def analyze_video(req: VideoRequest):
+async def analyze_video(req: VideoRequest):
     temp_video_path = None
     try:
         print(f"👉 Downloading video from {req.video_url}...")
@@ -64,11 +76,13 @@ def analyze_video(req: VideoRequest):
                     temp_video.write(chunk)
             temp_video_path = temp_video.name
 
-        # 1. Hand off to the Vision Service
-        vision_scores = process_video_frames(temp_video_path)
-
-        # 2. Hand off to the AI Speech Service
-        speech_scores = generate_speech_feedback(temp_video_path, req.question)
+        # Vision analysis (CPU-bound, local) and speech analysis (network-bound,
+        # waits on Gemini) are fully independent — both just read the same file.
+        # Running them concurrently instead of one-after-another cuts per-question
+        # latency roughly in half, with identical results either way.
+        vision_task = asyncio.to_thread(process_video_frames, temp_video_path)
+        speech_task = asyncio.to_thread(generate_speech_feedback, temp_video_path, req.question)
+        vision_scores, speech_scores = await asyncio.gather(vision_task, speech_task)
 
         # 3. Calculate Final Grade
         overall_score = int((speech_scores["content_score"] * 0.6) + 
@@ -82,7 +96,8 @@ def analyze_video(req: VideoRequest):
             "content_score": speech_scores["content_score"],
             "eye_contact_score": vision_scores["eye_contact_score"],
             "posture_score": vision_scores["posture_score"],
-            "feedback": speech_scores["speech_feedback"]
+            "feedback": speech_scores["speech_feedback"],
+            "suggested_answer": speech_scores.get("suggested_answer", "")
         }
 
     except Exception as e:
