@@ -31,6 +31,25 @@ function InterviewRoomInner() {
   const [analysisProgress, setAnalysisProgress] = useState({ current: 0, total: 0 });
   const [volumeLevel, setVolumeLevel] = useState(0);
 
+  // ── Engagement state (loading messages, timers, toasts, celebration) ─
+  const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [toast, setToast] = useState<string | null>(null);
+  const [expandedQ, setExpandedQ] = useState<Record<number, boolean>>({ 0: true });
+  const [animScores, setAnimScores] = useState({ overall: 0, content: 0, eye: 0, posture: 0 });
+  const [confettiPieces, setConfettiPieces] = useState<any[]>([]);
+
+  const loadingMessages = [
+    "Scanning your resume...",
+    "Understanding your experience...",
+    "Identifying your key skills...",
+    "Crafting challenging questions...",
+    "Almost ready...",
+  ];
+
+  const toggleQ = (i: number) => setExpandedQ(prev => ({ ...prev, [i]: !prev[i] }));
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
   // ── Voice feature state ──────────────────────────────────────────
   const [muted, setMuted] = useState(false);
   const [isSpeakingQuestion, setIsSpeakingQuestion] = useState(false);
@@ -91,6 +110,73 @@ function InterviewRoomInner() {
   useEffect(() => {
     if (muted) stopSpeaking();
   }, [muted]);
+
+  // ── Cycle fun status messages while the resume is being read ────
+  useEffect(() => {
+    if (!isInitializing) return;
+    const iv = setInterval(() => {
+      setLoadingMsgIndex(i => (i + 1) % loadingMessages.length);
+    }, 1700);
+    return () => clearInterval(iv);
+  }, [isInitializing]);
+
+  // ── Live recording timer ─────────────────────────────────────────
+  useEffect(() => {
+    let iv: NodeJS.Timeout | undefined;
+    if (isRecording) {
+      setRecordingSeconds(0);
+      iv = setInterval(() => setRecordingSeconds(s => s + 1), 1000);
+    } else {
+      setRecordingSeconds(0);
+    }
+    return () => { if (iv) clearInterval(iv); };
+  }, [isRecording]);
+
+  // ── Count-up animation for final scores ──────────────────────────
+  useEffect(() => {
+    if (!finalScores) return;
+    const targets = {
+      overall: Math.round((finalScores.content_score ?? 0) * 0.6 + (finalScores.eye_contact_score ?? 0) * 0.2 + (finalScores.posture_score ?? 0) * 0.2),
+      content: finalScores.content_score ?? 0,
+      eye: finalScores.eye_contact_score ?? 0,
+      posture: finalScores.posture_score ?? 0,
+    };
+    const duration = 1100;
+    const start = performance.now();
+    let raf: number;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setAnimScores({
+        overall: Math.round(targets.overall * eased),
+        content: Math.round(targets.content * eased),
+        eye: Math.round(targets.eye * eased),
+        posture: Math.round(targets.posture * eased),
+      });
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [finalScores]);
+
+  // ── Celebration confetti for a solid overall score ───────────────
+  useEffect(() => {
+    if (!finalScores) return;
+    const overall = Math.round((finalScores.content_score ?? 0) * 0.6 + (finalScores.eye_contact_score ?? 0) * 0.2 + (finalScores.posture_score ?? 0) * 0.2);
+    if (overall < 60) return;
+    const colors = ['#A0AB97', '#8F9B88', '#D8C7B3', '#75624E'];
+    const pieces = Array.from({ length: 36 }).map((_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 0.4,
+      duration: 2.2 + Math.random() * 1.2,
+      color: colors[i % colors.length],
+      size: 6 + Math.random() * 6,
+    }));
+    setConfettiPieces(pieces);
+    const t = setTimeout(() => setConfettiPieces([]), 4200);
+    return () => clearTimeout(t);
+  }, [finalScores]);
 
   // ── Main init ────────────────────────────────────────────────────
   useEffect(() => {
@@ -179,6 +265,8 @@ function InterviewRoomInner() {
           if (error) throw error;
           const { data } = supabase.storage.from('video_chunks').getPublicUrl(fn);
           videoUrlsRef.current.push(data.publicUrl);
+          setToast('✅ Answer saved!');
+          setTimeout(() => setToast(null), 1800);
         } catch (e) { console.error(e); }
         finally { setIsProcessingVideo(false); moveToNextQuestion(); }
       };
@@ -285,6 +373,9 @@ function InterviewRoomInner() {
       @keyframes gradShift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
       @keyframes orb1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,-20px)} }
       @keyframes soundWave { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(1.8)} }
+      @keyframes confettiFall { 0%{transform:translateY(-20px) rotate(0deg); opacity:1;} 100%{transform:translateY(100vh) rotate(720deg); opacity:0;} }
+      @keyframes toastIn { from{opacity:0;transform:translate(-50%,12px)} to{opacity:1;transform:translate(-50%,0)} }
+      @keyframes loadBar { 0%{transform:translateX(-100%)} 50%{transform:translateX(150%)} 100%{transform:translateX(150%)} }
       .btn-h { transition:transform 0.15s,box-shadow 0.15s,filter 0.15s; }
       .btn-h:hover { transform:translateY(-2px); filter:brightness(1.08); }
       .mute-btn { background:none; border:1px solid #D8C7B3; border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:6px; }
@@ -304,17 +395,34 @@ function InterviewRoomInner() {
         <div style={{ position:'absolute', inset:'8px', border:'4px solid #D8C7B3', borderTopColor:'#8F9B88', borderRadius:'50%', animation:'spin 1.3s linear infinite reverse' }} />
       </div>
       <h2 style={{ margin:'0 0 6px', fontSize:'20px', fontWeight:700, animation:'fadeUp 0.5s ease' }}>AI is reading your resume...</h2>
-      <p style={{ color:'#6F6A63', fontSize:'14px', animation:'fadeUp 0.5s 0.1s ease both' }}>Generating custom interview questions</p>
+      <p key={loadingMsgIndex} style={{ color:'#6F6A63', fontSize:'14px', animation:'fadeUp 0.4s ease', minHeight:'20px' }}>{loadingMessages[loadingMsgIndex]}</p>
+      <div style={{ width:'220px', height:'5px', background:'#D8C7B3', borderRadius:'99px', marginTop:'18px', overflow:'hidden' }}>
+        <div style={{ width:'40%', height:'100%', background:'linear-gradient(90deg,#A0AB97,#8F9B88)', borderRadius:'99px', animation:'loadBar 1.4s ease-in-out infinite' }} />
+      </div>
     </div>
   );
 
   // ── 2. Results ───────────────────────────────────────────────────
   if (isInterviewComplete) {
     const overall = finalScores ? Math.round((finalScores.content_score ?? 0) * 0.6 + (finalScores.eye_contact_score ?? 0) * 0.2 + (finalScores.posture_score ?? 0) * 0.2) : 0;
+    const badges: { emoji: string; label: string }[] = [];
+    if (finalScores) {
+      if ((finalScores.content_score ?? 0) >= 75) badges.push({ emoji: '🗣️', label: 'Strong Communicator' });
+      if ((finalScores.eye_contact_score ?? 0) >= 70) badges.push({ emoji: '👀', label: 'Great Eye Contact' });
+      if ((finalScores.posture_score ?? 0) >= 70) badges.push({ emoji: '🧍', label: 'Confident Posture' });
+      if (badges.length === 0) badges.push({ emoji: '🌱', label: 'Room to Grow' });
+    }
     return (
       <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,#F3E8DA 0%,#EFE3D2 100%)', color:'#2E2A25', padding:'24px', position:'relative', overflow:'hidden', fontFamily:'system-ui,-apple-system,sans-serif' }}>
         {S}
         <div style={{ position:'absolute', width:'450px', height:'450px', top:'-120px', right:'-100px', background:'radial-gradient(circle,rgba(160,171,151,0.1) 0%,transparent 70%)', borderRadius:'50%', animation:'orb1 11s ease-in-out infinite', pointerEvents:'none' }} />
+        {confettiPieces.length > 0 && (
+          <div style={{ position:'fixed', inset:0, pointerEvents:'none', overflow:'hidden', zIndex:5 }}>
+            {confettiPieces.map(p => (
+              <div key={p.id} style={{ position:'absolute', top:'-20px', left:`${p.left}%`, width:p.size, height:p.size * 0.4, background:p.color, borderRadius:'2px', animation:`confettiFall ${p.duration}s ease-in ${p.delay}s forwards` }} />
+            ))}
+          </div>
+        )}
         {isAnalyzing ? (
           <div style={{ textAlign:'center', position:'relative', zIndex:1 }}>
             <div style={{ position:'relative', width:'76px', height:'76px', margin:'0 auto 24px' }}>
@@ -328,26 +436,41 @@ function InterviewRoomInner() {
           <div style={{ background:'#EFE3D2', padding:'44px 48px', borderRadius:'28px', maxWidth:'720px', width:'100%', textAlign:'center', border:'1px solid #D8C7B3', boxShadow:'0 30px 70px -15px rgba(0,0,0,0.7)', position:'relative', zIndex:1, animation:'scaleIn 0.4s cubic-bezier(0.22,1,0.36,1)' }}>
             <div style={{ width:'76px', height:'76px', borderRadius:'50%', background:'rgba(160,171,151,0.15)', border:'2px solid rgba(160,171,151,0.5)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px', fontSize:'34px', animation:'popIn 0.6s cubic-bezier(0.22,1,0.36,1)', boxShadow:'0 0 30px rgba(160,171,151,0.3)' }}>🎉</div>
             <h2 style={{ margin:'0 0 6px', fontSize:'28px', fontWeight:800, color:'#2E2A25', animation:'fadeUp 0.5s ease' }}>Interview Complete</h2>
-            <p style={{ color:'#6F6A63', marginBottom:'28px', fontSize:'14px', animation:'fadeUp 0.5s 0.08s ease both' }}>Your AI performance review</p>
+            <p style={{ color:'#6F6A63', marginBottom:'18px', fontSize:'14px', animation:'fadeUp 0.5s 0.08s ease both' }}>Your AI performance review</p>
+            {badges.length > 0 && (
+              <div style={{ display:'flex', gap:'8px', justifyContent:'center', flexWrap:'wrap', marginBottom:'22px', animation:'fadeUp 0.5s 0.14s ease both' }}>
+                {badges.map((b, i) => (
+                  <span key={i} style={{ display:'inline-flex', alignItems:'center', gap:'6px', background:'rgba(160,171,151,0.15)', border:'1px solid rgba(160,171,151,0.4)', color:'#2E2A25', fontSize:'12px', fontWeight:700, padding:'6px 12px', borderRadius:'99px' }}>
+                    <span>{b.emoji}</span>{b.label}
+                  </span>
+                ))}
+              </div>
+            )}
             <div style={{ margin:'0 auto 24px', animation:'scaleIn 0.5s 0.12s cubic-bezier(0.22,1,0.36,1) both' }}>
               <svg width="130" height="130" viewBox="0 0 130 130" style={{ filter:'drop-shadow(0 0 12px rgba(160,171,151,0.4))' }}>
                 <circle cx="65" cy="65" r="56" fill="none" stroke="#EFE3D2" strokeWidth="10" />
                 <circle cx="65" cy="65" r="56" fill="none" stroke="#A0AB97" strokeWidth="10" strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 56} strokeDashoffset={2 * Math.PI * 56 * (1 - overall / 100)}
-                  style={{ transform:'rotate(-90deg)', transformOrigin:'65px 65px', transition:'stroke-dashoffset 1.4s cubic-bezier(0.22,1,0.36,1)' }} />
-                <text x="65" y="72" textAnchor="middle" fontSize="30" fontWeight="800" fill="#2E2A25">{overall}%</text>
+                  strokeDasharray={2 * Math.PI * 56} strokeDashoffset={2 * Math.PI * 56 * (1 - animScores.overall / 100)}
+                  style={{ transform:'rotate(-90deg)', transformOrigin:'65px 65px', transition:'stroke-dashoffset 0.3s ease' }} />
+                <text x="65" y="72" textAnchor="middle" fontSize="30" fontWeight="800" fill="#2E2A25">{animScores.overall}%</text>
               </svg>
               <p style={{ margin:'4px 0 0', fontSize:'12px', color:'#6F6A63' }}>Overall score</p>
             </div>
             <div style={{ background:'#F3E8DA', padding:'18px 20px', borderRadius:'16px', border:'1px solid #8F9B88', marginBottom:'16px', animation:'fadeUp 0.5s 0.2s ease both' }}>
               <div style={{ fontSize:'12px', color:'#6F6A63', textTransform:'uppercase', letterSpacing:'1px', marginBottom:'8px' }}>Answer Quality (Speech)</div>
-              <div style={{ fontSize:'40px', fontWeight:800, color:'#8F9B88' }}>{finalScores?.content_score}%</div>
+              <div style={{ fontSize:'40px', fontWeight:800, color:'#8F9B88' }}>{animScores.content}%</div>
+              <div style={{ height:'6px', background:'#D8C7B3', borderRadius:'99px', marginTop:'10px', overflow:'hidden' }}>
+                <div style={{ height:'100%', width:`${animScores.content}%`, background:'linear-gradient(90deg,#A0AB97,#8F9B88)', borderRadius:'99px', transition:'width 0.2s ease' }} />
+              </div>
             </div>
             <div style={{ display:'flex', gap:'14px', marginBottom:'24px' }}>
-              {[{ label:'Eye Contact', value:finalScores?.eye_contact_score, delay:'0.28s' }, { label:'Posture', value:finalScores?.posture_score, delay:'0.32s' }].map(({ label, value, delay }) => (
+              {[{ label:'Eye Contact', value:animScores.eye, delay:'0.28s' }, { label:'Posture', value:animScores.posture, delay:'0.32s' }].map(({ label, value, delay }) => (
                 <div key={label} style={{ flex:1, background:'#F3E8DA', padding:'16px', borderRadius:'14px', border:'1px solid #D8C7B3', animation:`fadeUp 0.5s ${delay} ease both` }}>
                   <div style={{ fontSize:'11px', color:'#6F6A63', textTransform:'uppercase', letterSpacing:'1px', marginBottom:'8px' }}>{label}</div>
                   <div style={{ fontSize:'30px', fontWeight:800, color:'#8F9B88' }}>{value}%</div>
+                  <div style={{ height:'5px', background:'#D8C7B3', borderRadius:'99px', marginTop:'8px', overflow:'hidden' }}>
+                    <div style={{ height:'100%', width:`${value}%`, background:'linear-gradient(90deg,#A0AB97,#8F9B88)', borderRadius:'99px', transition:'width 0.2s ease' }} />
+                  </div>
                 </div>
               ))}
             </div>
@@ -359,22 +482,33 @@ function InterviewRoomInner() {
             {questionResults.length > 0 && (
               <div style={{ textAlign:'left', marginBottom:'26px', animation:'fadeUp 0.5s 0.4s ease both' }}>
                 <h3 style={{ margin:'0 0 14px', fontSize:'16px', fontWeight:800, color:'#2E2A25' }}>Question-by-question breakdown</h3>
-                <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
-                  {questionResults.map((r, i) => (
-                    <div key={i} style={{ background:'#F3E8DA', borderRadius:'16px', border:'1px solid #D8C7B3', padding:'18px 20px' }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:'12px', marginBottom:'8px' }}>
-                        <p style={{ margin:0, fontSize:'14px', fontWeight:700, color:'#2E2A25', lineHeight:1.4 }}>Q{i + 1}. {r.question}</p>
-                        <span style={{ flexShrink:0, fontSize:'13px', fontWeight:800, color:'#2E2A25', background:'rgba(160,171,151,0.3)', padding:'3px 10px', borderRadius:'99px', whiteSpace:'nowrap' }}>{Math.round(r.content_score)}%</span>
-                      </div>
-                      <p style={{ margin:'0 0 12px', fontSize:'13px', color:'#6F6A63', lineHeight:1.6 }}>{r.feedback}</p>
-                      {r.suggested_answer && (
-                        <div style={{ background:'#EFE3D2', borderRadius:'10px', borderLeft:'3px solid #8F9B88', padding:'12px 14px' }}>
-                          <p style={{ margin:'0 0 4px', fontSize:'10px', fontWeight:700, color:'#8F9B88', textTransform:'uppercase', letterSpacing:'0.06em' }}>Suggested answer</p>
-                          <p style={{ margin:0, fontSize:'12.5px', color:'#2E2A25', lineHeight:1.6 }}>{r.suggested_answer}</p>
+                <p style={{ margin:'0 0 14px', fontSize:'12px', color:'#6F6A63' }}>Tap a question to see detailed feedback and a suggested answer.</p>
+                <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
+                  {questionResults.map((r, i) => {
+                    const isOpen = !!expandedQ[i];
+                    return (
+                      <div key={i} onClick={() => toggleQ(i)} style={{ background:'#F3E8DA', borderRadius:'16px', border:'1px solid #D8C7B3', padding:'16px 20px', cursor:'pointer', transition:'border-color 0.2s ease' }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:'12px' }}>
+                          <p style={{ margin:0, fontSize:'14px', fontWeight:700, color:'#2E2A25', lineHeight:1.4, flex:1 }}>Q{i + 1}. {r.question}</p>
+                          <div style={{ display:'flex', alignItems:'center', gap:'10px', flexShrink:0 }}>
+                            <span style={{ fontSize:'13px', fontWeight:800, color:'#2E2A25', background:'rgba(160,171,151,0.3)', padding:'3px 10px', borderRadius:'99px', whiteSpace:'nowrap' }}>{Math.round(r.content_score)}%</span>
+                            <span style={{ display:'inline-block', color:'#8F9B88', fontSize:'13px', transition:'transform 0.25s ease', transform:isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        {isOpen && (
+                          <div style={{ marginTop:'12px', animation:'fadeUp 0.3s ease' }}>
+                            <p style={{ margin:'0 0 12px', fontSize:'13px', color:'#6F6A63', lineHeight:1.6 }}>{r.feedback}</p>
+                            {r.suggested_answer && (
+                              <div style={{ background:'#EFE3D2', borderRadius:'10px', borderLeft:'3px solid #8F9B88', padding:'12px 14px' }}>
+                                <p style={{ margin:'0 0 4px', fontSize:'10px', fontWeight:700, color:'#8F9B88', textTransform:'uppercase', letterSpacing:'0.06em' }}>Suggested answer</p>
+                                <p style={{ margin:0, fontSize:'12.5px', color:'#2E2A25', lineHeight:1.6 }}>{r.suggested_answer}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -395,6 +529,12 @@ function InterviewRoomInner() {
     <div style={{ minHeight:'100vh', background:'linear-gradient(135deg,#F3E8DA 0%,#EFE3D2 100%)', color:'#2E2A25', padding:'36px 24px', fontFamily:'system-ui,-apple-system,sans-serif', position:'relative', overflow:'hidden' }}>
       {S}
       <div style={{ position:'absolute', width:'500px', height:'500px', top:'-200px', left:'20%', background:'radial-gradient(circle,rgba(160,171,151,0.06) 0%,transparent 70%)', borderRadius:'50%', pointerEvents:'none' }} />
+
+      {toast && (
+        <div style={{ position:'fixed', bottom:'28px', left:'50%', transform:'translateX(-50%)', background:'#2E2A25', color:'#F3E8DA', padding:'10px 20px', borderRadius:'99px', fontSize:'13px', fontWeight:600, boxShadow:'0 8px 24px rgba(0,0,0,0.3)', zIndex:10, animation:'toastIn 0.3s ease' }}>
+          {toast}
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #D8C7B3', paddingBottom:'16px', marginBottom:'28px', maxWidth:'1200px', margin:'0 auto 28px', position:'relative', zIndex:1, animation:'fadeUp 0.5s ease' }}>
@@ -490,7 +630,8 @@ function InterviewRoomInner() {
               <div>
                 <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'10px' }}>
                   <div style={{ width:'14px', height:'14px', borderRadius:'50%', background:isSpeaking ? '#8F9B88' : '#eab308', animation:isSpeaking ? 'recPulse 1.5s ease infinite' : 'none' }} />
-                  <h4 style={{ margin:0, fontSize:'16px', fontWeight:600 }}>{isSpeaking ? 'AI is listening...' : 'Silence detected (saving in 3s)...'}</h4>
+                  <h4 style={{ margin:0, fontSize:'16px', fontWeight:600, flex:1 }}>{isSpeaking ? 'AI is listening...' : 'Silence detected (saving in 3s)...'}</h4>
+                  <span style={{ fontSize:'13px', fontWeight:700, color:'#8F9B88', fontVariantNumeric:'tabular-nums' }}>{formatTime(recordingSeconds)}</span>
                 </div>
                 <div style={{ display:'flex', gap:'3px', alignItems:'flex-end', height:'20px', marginBottom:'10px', marginLeft:'26px' }}>
                   {[0, 1, 2, 3, 4].map(i => (
