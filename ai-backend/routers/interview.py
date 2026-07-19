@@ -1,5 +1,6 @@
 import os
 import io
+import asyncio
 import requests
 import tempfile
 from fastapi import APIRouter, HTTPException
@@ -62,7 +63,7 @@ def generate_questions(req: ResumeRequest):
 
 
 @router.post("/analyze-video")
-def analyze_video(req: VideoRequest):
+async def analyze_video(req: VideoRequest):
     temp_video_path = None
     try:
         print(f"👉 Downloading video from {req.video_url}...")
@@ -75,11 +76,13 @@ def analyze_video(req: VideoRequest):
                     temp_video.write(chunk)
             temp_video_path = temp_video.name
 
-        # 1. Hand off to the Vision Service
-        vision_scores = process_video_frames(temp_video_path)
-
-        # 2. Hand off to the AI Speech Service
-        speech_scores = generate_speech_feedback(temp_video_path, req.question)
+        # Vision analysis (CPU-bound, local) and speech analysis (network-bound,
+        # waits on Gemini) are fully independent — both just read the same file.
+        # Running them concurrently instead of one-after-another cuts per-question
+        # latency roughly in half, with identical results either way.
+        vision_task = asyncio.to_thread(process_video_frames, temp_video_path)
+        speech_task = asyncio.to_thread(generate_speech_feedback, temp_video_path, req.question)
+        vision_scores, speech_scores = await asyncio.gather(vision_task, speech_task)
 
         # 3. Calculate Final Grade
         overall_score = int((speech_scores["content_score"] * 0.6) + 
