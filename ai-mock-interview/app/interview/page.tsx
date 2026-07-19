@@ -4,6 +4,31 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+function ScoreBarChart({ speech, eye, posture }: { speech: number; eye: number; posture: number }) {
+  const [drawn, setDrawn] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setDrawn(true), 150); return () => clearTimeout(t); }, []);
+  const bars = [
+    { label: 'Speech Content', value: speech, color: '#A0AB97' },
+    { label: 'Eye Contact', value: eye, color: '#8F9B88' },
+    { label: 'Posture', value: posture, color: '#75624E' },
+  ];
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:'16px', width:'100%' }}>
+      {bars.map((b, i) => (
+        <div key={b.label} style={{ width:'100%' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'6px' }}>
+            <span style={{ fontSize:'13px', fontWeight:600, color:'#2E2A25' }}>{b.label}</span>
+            <span style={{ fontSize:'13px', fontWeight:800, color:'#2E2A25' }}>{Math.round(b.value)}%</span>
+          </div>
+          <div style={{ width:'100%', height:'14px', background:'#D8C7B3', borderRadius:'99px', overflow:'hidden' }}>
+            <div style={{ height:'100%', width:drawn ? `${Math.max(1.5, b.value)}%` : '0%', background:`linear-gradient(90deg, ${b.color}, ${b.color}cc)`, borderRadius:'99px', transition:`width 0.9s cubic-bezier(0.22,1,0.36,1) ${i * 0.12}s` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function InterviewRoomInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -433,12 +458,12 @@ function InterviewRoomInner() {
             <p style={{ color:'#6F6A63', animation:'fadeUp 0.5s 0.1s ease both' }}>{analysisProgress.total > 0 ? `Question ${analysisProgress.current} of ${analysisProgress.total}` : 'Running Computer Vision + Speech models'}</p>
           </div>
         ) : (
-          <div style={{ background:'#EFE3D2', padding:'44px 48px', borderRadius:'28px', maxWidth:'720px', width:'100%', textAlign:'center', border:'1px solid #D8C7B3', boxShadow:'0 30px 70px -15px rgba(0,0,0,0.7)', position:'relative', zIndex:1, animation:'scaleIn 0.4s cubic-bezier(0.22,1,0.36,1)' }}>
+          <div style={{ background:'#EFE3D2', padding:'44px 48px', borderRadius:'28px', maxWidth:'900px', width:'100%', textAlign:'center', border:'1px solid #D8C7B3', boxShadow:'0 30px 70px -15px rgba(0,0,0,0.7)', position:'relative', zIndex:1, animation:'scaleIn 0.4s cubic-bezier(0.22,1,0.36,1)' }}>
             <div style={{ width:'76px', height:'76px', borderRadius:'50%', background:'rgba(160,171,151,0.15)', border:'2px solid rgba(160,171,151,0.5)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px', fontSize:'34px', animation:'popIn 0.6s cubic-bezier(0.22,1,0.36,1)', boxShadow:'0 0 30px rgba(160,171,151,0.3)' }}>🎉</div>
             <h2 style={{ margin:'0 0 6px', fontSize:'28px', fontWeight:800, color:'#2E2A25', animation:'fadeUp 0.5s ease' }}>Interview Complete</h2>
             <p style={{ color:'#6F6A63', marginBottom:'18px', fontSize:'14px', animation:'fadeUp 0.5s 0.08s ease both' }}>Your AI performance review</p>
             {badges.length > 0 && (
-              <div style={{ display:'flex', gap:'8px', justifyContent:'center', flexWrap:'wrap', marginBottom:'22px', animation:'fadeUp 0.5s 0.14s ease both' }}>
+              <div style={{ display:'flex', gap:'8px', justifyContent:'center', flexWrap:'wrap', marginBottom:'26px', animation:'fadeUp 0.5s 0.14s ease both' }}>
                 {badges.map((b, i) => (
                   <span key={i} style={{ display:'inline-flex', alignItems:'center', gap:'6px', background:'rgba(160,171,151,0.15)', border:'1px solid rgba(160,171,151,0.4)', color:'#2E2A25', fontSize:'12px', fontWeight:700, padding:'6px 12px', borderRadius:'99px' }}>
                     <span>{b.emoji}</span>{b.label}
@@ -446,34 +471,24 @@ function InterviewRoomInner() {
                 ))}
               </div>
             )}
-            <div style={{ margin:'0 auto 24px', animation:'scaleIn 0.5s 0.12s cubic-bezier(0.22,1,0.36,1) both' }}>
-              <svg width="130" height="130" viewBox="0 0 130 130" style={{ filter:'drop-shadow(0 0 12px rgba(160,171,151,0.4))' }}>
-                <circle cx="65" cy="65" r="56" fill="none" stroke="#EFE3D2" strokeWidth="10" />
-                <circle cx="65" cy="65" r="56" fill="none" stroke="#A0AB97" strokeWidth="10" strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 56} strokeDashoffset={2 * Math.PI * 56 * (1 - animScores.overall / 100)}
-                  style={{ transform:'rotate(-90deg)', transformOrigin:'65px 65px', transition:'stroke-dashoffset 0.3s ease' }} />
-                <text x="65" y="72" textAnchor="middle" fontSize="30" fontWeight="800" fill="#2E2A25">{animScores.overall}%</text>
-              </svg>
-              <p style={{ margin:'4px 0 0', fontSize:'12px', color:'#6F6A63' }}>Overall score</p>
-            </div>
-            <div style={{ background:'#F3E8DA', padding:'18px 20px', borderRadius:'16px', border:'1px solid #8F9B88', marginBottom:'16px', animation:'fadeUp 0.5s 0.2s ease both' }}>
-              <div style={{ fontSize:'12px', color:'#6F6A63', textTransform:'uppercase', letterSpacing:'1px', marginBottom:'8px' }}>Answer Quality (Speech)</div>
-              <div style={{ fontSize:'40px', fontWeight:800, color:'#8F9B88' }}>{animScores.content}%</div>
-              <div style={{ height:'6px', background:'#D8C7B3', borderRadius:'99px', marginTop:'10px', overflow:'hidden' }}>
-                <div style={{ height:'100%', width:`${animScores.content}%`, background:'linear-gradient(90deg,#A0AB97,#8F9B88)', borderRadius:'99px', transition:'width 0.2s ease' }} />
+
+            <div style={{ display:'flex', alignItems:'center', gap:'40px', textAlign:'left', marginBottom:'28px', flexWrap:'wrap' }}>
+              <div style={{ margin:'0 auto', animation:'scaleIn 0.5s 0.12s cubic-bezier(0.22,1,0.36,1) both', textAlign:'center', flexShrink:0 }}>
+                <svg width="150" height="150" viewBox="0 0 130 130" style={{ filter:'drop-shadow(0 0 12px rgba(160,171,151,0.4))' }}>
+                  <circle cx="65" cy="65" r="56" fill="none" stroke="#EFE3D2" strokeWidth="10" />
+                  <circle cx="65" cy="65" r="56" fill="none" stroke="#A0AB97" strokeWidth="10" strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 56} strokeDashoffset={2 * Math.PI * 56 * (1 - animScores.overall / 100)}
+                    style={{ transform:'rotate(-90deg)', transformOrigin:'65px 65px', transition:'stroke-dashoffset 0.3s ease' }} />
+                  <text x="65" y="72" textAnchor="middle" fontSize="30" fontWeight="800" fill="#2E2A25">{animScores.overall}%</text>
+                </svg>
+                <p style={{ margin:'4px 0 0', fontSize:'12px', color:'#6F6A63' }}>Overall score</p>
+              </div>
+              <div style={{ flex:'1 1 320px', background:'#F3E8DA', padding:'20px 24px', borderRadius:'18px', border:'1px solid #D8C7B3', animation:'fadeUp 0.5s 0.2s ease both' }}>
+                <p style={{ margin:'0 0 14px', fontSize:'11px', color:'#6F6A63', textTransform:'uppercase', letterSpacing:'1px' }}>Score breakdown</p>
+                <ScoreBarChart speech={animScores.content} eye={animScores.eye} posture={animScores.posture} />
               </div>
             </div>
-            <div style={{ display:'flex', gap:'14px', marginBottom:'24px' }}>
-              {[{ label:'Eye Contact', value:animScores.eye, delay:'0.28s' }, { label:'Posture', value:animScores.posture, delay:'0.32s' }].map(({ label, value, delay }) => (
-                <div key={label} style={{ flex:1, background:'#F3E8DA', padding:'16px', borderRadius:'14px', border:'1px solid #D8C7B3', animation:`fadeUp 0.5s ${delay} ease both` }}>
-                  <div style={{ fontSize:'11px', color:'#6F6A63', textTransform:'uppercase', letterSpacing:'1px', marginBottom:'8px' }}>{label}</div>
-                  <div style={{ fontSize:'30px', fontWeight:800, color:'#8F9B88' }}>{value}%</div>
-                  <div style={{ height:'5px', background:'#D8C7B3', borderRadius:'99px', marginTop:'8px', overflow:'hidden' }}>
-                    <div style={{ height:'100%', width:`${value}%`, background:'linear-gradient(90deg,#A0AB97,#8F9B88)', borderRadius:'99px', transition:'width 0.2s ease' }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+
             <div style={{ background:'#F3E8DA', padding:'18px', borderRadius:'14px', borderLeft:'4px solid #A0AB97', textAlign:'left', marginBottom:'26px', animation:'fadeUp 0.5s 0.36s ease both' }}>
               <h4 style={{ margin:'0 0 6px', color:'#2E2A25', fontSize:'14px' }}>AI Feedback</h4>
               <p style={{ margin:0, color:'#6F6A63', fontSize:'13px', lineHeight:1.6 }}>{finalScores?.feedback}</p>
