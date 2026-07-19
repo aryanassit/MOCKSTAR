@@ -313,21 +313,24 @@ function InterviewRoomInner() {
   // ── Analysis + save ──────────────────────────────────────────────
   const analyzeFinalResults = async () => {
     setIsAnalyzing(true);
-    const results: any[] = [];
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       const total = aiQuestions.length;
       setAnalysisProgress({ current: 0, total });
 
-      // Analyze each question's video one at a time (sequential, not parallel —
-      // avoids hammering the Gemini API and keeps upload order predictable).
-      for (let i = 0; i < total; i++) {
-        setAnalysisProgress({ current: i + 1, total });
+      // Analyze all questions concurrently — each analyze-video call is
+      // independent, so there's no reason to wait for question 1's video to
+      // finish processing before even starting question 2's. Progress updates
+      // as each one individually finishes (order of completion isn't
+      // guaranteed to match question order, but the final results array is
+      // reassembled in the correct order regardless).
+      let completedCount = 0;
+      const analyzeOne = async (i: number) => {
         const videoUrl = videoUrlsRef.current[i];
         const question = aiQuestions[i];
         if (!videoUrl) {
-          results.push({ question, content_score: 0, eye_contact_score: 0, posture_score: 0, feedback: 'No recording was saved for this question.', suggested_answer: '' });
-          continue;
+          completedCount++; setAnalysisProgress({ current: completedCount, total });
+          return { question, content_score: 0, eye_contact_score: 0, posture_score: 0, feedback: 'No recording was saved for this question.', suggested_answer: '' };
         }
         try {
           const response = await fetch(`${backendUrl}/analyze-video`, {
@@ -336,19 +339,23 @@ function InterviewRoomInner() {
           });
           if (!response.ok) throw new Error(`Analysis failed for question ${i + 1}`);
           const data = await response.json();
-          results.push({
+          completedCount++; setAnalysisProgress({ current: completedCount, total });
+          return {
             question,
             content_score: data.content_score ?? 0,
             eye_contact_score: data.eye_contact_score ?? 0,
             posture_score: data.posture_score ?? 0,
             feedback: data.feedback ?? '',
             suggested_answer: data.suggested_answer ?? '',
-          });
+          };
         } catch (err) {
           console.error(`Question ${i + 1} analysis error:`, err);
-          results.push({ question, content_score: 0, eye_contact_score: 0, posture_score: 0, feedback: 'This answer could not be analyzed due to a technical error.', suggested_answer: '' });
+          completedCount++; setAnalysisProgress({ current: completedCount, total });
+          return { question, content_score: 0, eye_contact_score: 0, posture_score: 0, feedback: 'This answer could not be analyzed due to a technical error.', suggested_answer: '' };
         }
-      }
+      };
+
+      const results: any[] = await Promise.all(aiQuestions.map((_, i) => analyzeOne(i)));
 
       setQuestionResults(results);
 
@@ -455,7 +462,7 @@ function InterviewRoomInner() {
               <div style={{ position:'absolute', inset:'10px', border:'5px solid #D8C7B3', borderTopColor:'#8F9B88', borderRadius:'50%', animation:'spin 1.4s linear infinite reverse' }} />
             </div>
             <h2 style={{ color:'#2E2A25', fontSize:'24px', fontWeight:700, margin:'0 0 8px', animation:'fadeUp 0.5s ease' }}>Analyzing your answers...</h2>
-            <p style={{ color:'#6F6A63', animation:'fadeUp 0.5s 0.1s ease both' }}>{analysisProgress.total > 0 ? `Question ${analysisProgress.current} of ${analysisProgress.total}` : 'Running Computer Vision + Speech models'}</p>
+            <p style={{ color:'#6F6A63', animation:'fadeUp 0.5s 0.1s ease both' }}>{analysisProgress.total > 0 ? `${analysisProgress.current} of ${analysisProgress.total} answers analyzed` : 'Running Computer Vision + Speech models'}</p>
           </div>
         ) : (
           <div style={{ background:'#EFE3D2', padding:'44px 48px', borderRadius:'28px', maxWidth:'900px', width:'100%', textAlign:'center', border:'1px solid #D8C7B3', boxShadow:'0 30px 70px -15px rgba(0,0,0,0.7)', position:'relative', zIndex:1, animation:'scaleIn 0.4s cubic-bezier(0.22,1,0.36,1)' }}>
