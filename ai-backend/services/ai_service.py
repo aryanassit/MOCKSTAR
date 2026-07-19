@@ -44,27 +44,42 @@ def generate_speech_feedback(temp_video_path: str, question: str) -> dict:
 
         print("👉 Generating AI Speech Grade...")
         prompt = f"""
-        Act as a STRICT Senior Technical Recruiter. Watch this candidate answer the question: "{question}"
+        Act as a FAANG-level bar-raiser interviewer who has assessed thousands of candidates.
+        You know the difference between someone who deeply understands a topic and someone who
+        merely sounds confident. Watch this candidate answer: "{question}"
 
-        CRITICAL GRADING RUBRIC:
-        - 90-100: Exceptional, detailed, perfectly structured (e.g., STAR method), highly technical.
-        - 70-89: Good, but missing some depth, clarity, or technical accuracy.
-        - 40-69: Vague, very short, or heavily relies on filler words.
-        - 10-39: Weak answer, barely on topic, very little substance.
-        - 0-9: The candidate is silent, says nothing meaningful, or does not answer the question at all.
+        STRICT GRADING RUBRIC. Most real candidates should land between 35 and 65. Reserve 85+ for
+        genuinely exceptional answers only — do not treat that as the default or common outcome.
+        - 95-100: Flawless. Complete, precisely structured (e.g. STAR method), deep technical accuracy,
+          no wasted words. Would impress a senior technical leader.
+        - 80-94: Very strong. Clear structure and solid depth, only minor gaps.
+        - 60-79: Decent but incomplete. Right general direction, but missing specifics, concrete
+          evidence, or technical precision. Rambling or unfocused sections count against this band.
+        - 35-59: Weak. Mostly filler or vague generalities, little to no concrete evidence, avoids the
+          hard part of the question.
+        - 10-34: Very weak. Barely addresses the actual question, mostly off-topic or superficial.
+        - 0-9: Silent, inaudible, or no real verbal answer at all.
 
-        If the candidate does not speak, mumbles inaudibly, or the video contains no real verbal answer,
-        you MUST score content_score between 0 and 9. Do not be generous. A silent or empty answer is NOT
-        a 40-69 "vague" answer — it is a 0-9 non-answer.
+        RULES YOU MUST FOLLOW, NO EXCEPTIONS:
+        1. Do not round up to be encouraging. If an answer is genuinely a 52, score it 52 — not 65,
+           not 70.
+        2. Confidence and fluency are NOT content quality. Do not reward someone who sounds articulate
+           but says nothing substantive.
+        3. A generic, textbook-sounding answer with no specific example or evidence is capped at 65,
+           even if delivered smoothly.
+        4. If the candidate does not actually address the question asked, cap the score at 30
+           regardless of how well they speak.
+        5. If the candidate is silent, mumbles inaudibly, or gives no real verbal answer, you MUST
+           score 0-9. This is non-negotiable, even if the video shows them appearing to think or
+           gesture.
 
-        Do NOT be overly polite. Be harsh but fair. Penalize short or silent answers heavily.
-
-        Also write a strong, concise MODEL ANSWER to this same question — a 3-5 sentence example of how a
-        top candidate would answer it well. Write this regardless of how the candidate actually answered,
-        so they have something to learn from.
+        Also write a strong, concise MODEL ANSWER to this same question — a 3-5 sentence example of
+        how a top candidate would answer it well. Write this regardless of how the candidate actually
+        answered, so they have something concrete to learn from.
 
         Return your analysis inside a strict JSON layout containing exactly these three keys:
-        "content_score", "speech_feedback", and "suggested_answer".
+        "content_score", "speech_feedback", and "suggested_answer". The speech_feedback must reference
+        what the candidate specifically said — not generic advice that could apply to any answer.
         """
 
         ai_response = client.models.generate_content(
@@ -96,7 +111,7 @@ def generate_speech_feedback(temp_video_path: str, question: str) -> dict:
         traceback.print_exc()
         return {
             "content_score": 0,
-            "speech_feedback": "AI analysis could not be completed for this answer due to a technical error. This score does not reflect answer quality — check server logs.",
+            "speech_feedback": "[System error] This answer could not be analyzed due to a technical failure on our end — not a reflection of your answer. Check server logs for the underlying error.",
             "suggested_answer": ""
         }
     finally:
