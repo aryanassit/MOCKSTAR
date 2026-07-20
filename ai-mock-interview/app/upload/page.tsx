@@ -12,6 +12,10 @@ export default function UploadPage() {
   const [fileName, setFileName] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [mounted, setMounted] = useState(false);
+  
+  // NEW STATE: To hold the saved resume URL if it exists
+  const [savedResumeUrl, setSavedResumeUrl] = useState<string | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const [roundType, setRoundType] = useState<'technical'|'hr'>('technical');
@@ -19,8 +23,19 @@ export default function UploadPage() {
   useEffect(() => {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) router.push('/');
-      else { setUser(session.user); setTimeout(() => setMounted(true), 50); }
+      if (!session) {
+        router.push('/');
+      } else { 
+        setUser(session.user); 
+        
+        // NEW LOGIC: Check if they already have a resume saved in their profile
+        const { data: profile } = await supabase.from('profiles').select('resume_url').eq('id', session.user.id).single();
+        if (profile?.resume_url) {
+          setSavedResumeUrl(profile.resume_url);
+        }
+        
+        setTimeout(() => setMounted(true), 50); 
+      }
     })();
   }, [router]);
 
@@ -36,6 +51,9 @@ export default function UploadPage() {
       const { data: publicUrlData } = supabase.storage.from('resumes').getPublicUrl(storageFileName);
       const { error: updateError } = await supabase.from('profiles').upsert({ id: user.id, resume_url: publicUrlData.publicUrl, email: user.email });
       if (updateError) throw updateError;
+      
+      // Update our local state so the banner knows we have a fresh resume
+      setSavedResumeUrl(publicUrlData.publicUrl);
       setIsUploaded(true);
     } catch (error: any) { setMessage(`Error: ${error.message}`); }
     finally { setUploading(false); }
@@ -43,6 +61,11 @@ export default function UploadPage() {
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) uploadResume(e.target.files[0]); };
   const handleDrop = (e: React.DragEvent) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files?.[0]) uploadResume(e.dataTransfer.files[0]); };
+
+  const useExistingResume = () => {
+    setFileName("Saved_Profile_Resume.pdf");
+    setIsUploaded(true);
+  };
 
   if (!user) return (
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#F3E8DA' }}>
@@ -75,12 +98,12 @@ export default function UploadPage() {
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           <div style={{ width:30, height:30, borderRadius:8, background:'linear-gradient(135deg,#A0AB97,#8F9B88)', backgroundSize:'200% 200%', animation:'gradShift 4s ease infinite', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, color:'#2E2A25', fontSize:14, boxShadow:'0 4px 12px rgba(160,171,151,0.3)' }}>M</div>
             <span style={{ fontWeight:700, fontSize:16, color:'#F3E8DA' }}>MockStar</span>
-</div>
-<div style={{ display:'flex', alignItems:'center', gap:6 }}>
-  {['dashboard','history'].map(p=>(
-    <button key={p} onClick={()=>router.push(`/${p}`)} style={{ fontSize:13, color:'#D8C7B3', background:'none', border:'none', cursor:'pointer', padding:'6px 12px', borderRadius:8, textTransform:'capitalize', transition:'color 0.15s,background 0.15s' }}
-      onMouseEnter={e=>{e.currentTarget.style.color='#F3E8DA';e.currentTarget.style.background='rgba(160,171,151,0.15);'}}
-      onMouseLeave={e=>{e.currentTarget.style.color='#D8C7B3';e.currentTarget.style.background='none';}}>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          {['dashboard','history'].map(p=>(
+            <button key={p} onClick={()=>router.push(`/${p}`)} style={{ fontSize:13, color:'#D8C7B3', background:'none', border:'none', cursor:'pointer', padding:'6px 12px', borderRadius:8, textTransform:'capitalize', transition:'color 0.15s,background 0.15s' }}
+              onMouseEnter={e=>{e.currentTarget.style.color='#F3E8DA';e.currentTarget.style.background='rgba(160,171,151,0.15);'}}
+              onMouseLeave={e=>{e.currentTarget.style.color='#D8C7B3';e.currentTarget.style.background='none';}}>
               {p.charAt(0).toUpperCase()+p.slice(1)}
             </button>
           ))}
@@ -116,7 +139,20 @@ export default function UploadPage() {
         <div style={{ padding:'32px', borderRight:'1px solid rgba(160,171,151,0.08)', display:'flex', flexDirection:'column', animation:mounted?'fadeLeft 0.5s 0.2s ease both':undefined, opacity:mounted?undefined:0 }}>
           {!isUploaded ? (
             <>
-              <h2 style={{ margin:'0 0 5px', fontSize:17, fontWeight:700, color:'#2E2A25' }}>Upload your resume</h2>
+              {/* NEW: Saved Resume Banner */}
+              {savedResumeUrl && (
+                <div style={{ padding:'18px 20px', marginBottom:'24px', background:'rgba(160,171,151,0.15)', border:'1px solid #8F9B88', borderRadius:'16px', display:'flex', alignItems:'center', justifyContent:'space-between', animation:'fadeUp 0.4s ease' }}>
+                  <div>
+                    <p style={{ margin:'0 0 4px', fontSize:15, fontWeight:700, color:'#2E2A25' }}>Saved Resume Found</p>
+                    <p style={{ margin:0, fontSize:13, color:'#6F6A63' }}>Use the resume from your last interview to start instantly.</p>
+                  </div>
+                  <button onClick={useExistingResume} className="btn-green" style={{ padding:'10px 18px', fontSize:14, whiteSpace:'nowrap', background:'#8F9B88', color:'white', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:600, transition:'background 0.2s' }}>
+                    Use saved resume →
+                  </button>
+                </div>
+              )}
+
+              <h2 style={{ margin:'0 0 5px', fontSize:17, fontWeight:700, color:'#2E2A25' }}>{savedResumeUrl ? "Or upload a new resume" : "Upload your resume"}</h2>
               <p style={{ margin:'0 0 20px', fontSize:13, color:'#6F6A63' }}>PDF only · Max 5 MB · Processed securely</p>
 
               <div onDragOver={e=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onDrop={handleDrop}
@@ -135,7 +171,7 @@ export default function UploadPage() {
                     <div style={{ width:64, height:64, background:dragOver?'rgba(160,171,151,0.15)':'rgba(160,171,151,0.06)', border:`1.5px solid ${dragOver?'rgba(160,171,151,0.6)':'#D8C7B3'}`, borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16, fontSize:28, transition:'all 0.2s', animation:'float 4s ease-in-out infinite' }}>📄</div>
                     <p style={{ margin:'0 0 8px', fontSize:19, fontWeight:700, color:'#2E2A25' }}>Drop your resume here</p>
                     <p style={{ margin:'0 0 24px', fontSize:13, color:'#6F6A63' }}>or click to browse · PDF only · Max 5 MB</p>
-                    <button className="btn-green" style={{ padding:'12px 28px', fontSize:14 }}>Select PDF file</button>
+                    <button className="btn-green" style={{ padding:'12px 28px', fontSize:14, background:'linear-gradient(135deg,#A0AB97,#8F9B88)', color:'white', border:'none', borderRadius:'10px', cursor:'pointer' }}>Select PDF file</button>
                     <p style={{ margin:'14px 0 0', fontSize:11, color:'#6F6A63' }}>Drag & drop also supported</p>
                   </>
                 )}
@@ -160,8 +196,26 @@ export default function UploadPage() {
                   </div>
                 ))}
               </div>
-              <p style={{ margin:'0 0 10px', fontSize:12, fontWeight:700, color:'#6F6A63', textTransform:'uppercase', letterSpacing:'0.06em', width:'100%', maxWidth:380, textAlign:'left' }}>Choose round type</p> <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, width:'100%', maxWidth:380, marginBottom:20 }}>   {[     { key:'technical', icon:'💻', title:'Technical', desc:'Skills, projects, problem-solving' },     { key:'hr', icon:'🤝', title:'HR round', desc:'Behavioral, culture-fit, communication' },   ].map(({key,icon,title,desc})=>{     const active = roundType===key;     return (       <button key={key} onClick={()=>setRoundType(key as 'technical'|'hr')}         style={{ textAlign:'left', cursor:'pointer', padding:'14px 14px', borderRadius:14, border:`1.5px solid ${active?'#8F9B88':'#D8C7B3'}`, background:active?'rgba(160,171,151,0.15)':'#EFE3D2', boxShadow:active?'0 0 0 3px rgba(160,171,151,0.15)':'none', transition:'all 0.15s' }}>         <div style={{ fontSize:20, marginBottom:6 }}>{icon}</div>         <p style={{ margin:'0 0 2px', fontSize:14, fontWeight:700, color:'#2E2A25' }}>{title}</p>         <p style={{ margin:0, fontSize:11, color:'#6F6A63', lineHeight:1.4 }}>{desc}</p>       </button>     );   })} </div> <button onClick={()=>router.push(`/interview?round=${roundType}`)} className="btn-green" style={{ width:'100%', maxWidth:380, padding:16, fontSize:16 }}>Start {roundType==='technical'?'technical':'HR'} interview →</button>
-              <button onClick={()=>{setIsUploaded(false);setFileName('');setMessage('');}} style={{ marginTop:10, background:'none', border:'none', color:'#6F6A63', fontSize:13, cursor:'pointer' }}>Use a different resume</button>
+              <p style={{ margin:'0 0 10px', fontSize:12, fontWeight:700, color:'#6F6A63', textTransform:'uppercase', letterSpacing:'0.06em', width:'100%', maxWidth:380, textAlign:'left' }}>Choose round type</p> 
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, width:'100%', maxWidth:380, marginBottom:20 }}>   
+                {[
+                  { key:'technical', icon:'💻', title:'Technical', desc:'Skills, projects, problem-solving' },     
+                  { key:'hr', icon:'🤝', title:'HR round', desc:'Behavioral, culture-fit, communication' },   
+                ].map(({key,icon,title,desc})=>{     
+                  const active = roundType===key;     
+                  return (       
+                    <button key={key} onClick={()=>setRoundType(key as 'technical'|'hr')}         
+                      style={{ textAlign:'left', cursor:'pointer', padding:'14px 14px', borderRadius:14, border:`1.5px solid ${active?'#8F9B88':'#D8C7B3'}`, background:active?'rgba(160,171,151,0.15)':'#EFE3D2', boxShadow:active?'0 0 0 3px rgba(160,171,151,0.15)':'none', transition:'all 0.15s' }}>         
+                      <div style={{ fontSize:20, marginBottom:6 }}>{icon}</div>         
+                      <p style={{ margin:'0 0 2px', fontSize:14, fontWeight:700, color:'#2E2A25' }}>{title}</p>         
+                      <p style={{ margin:0, fontSize:11, color:'#6F6A63', lineHeight:1.4 }}>{desc}</p>       
+                    </button>     
+                  );   
+                })} 
+              </div> 
+              <button onClick={()=>router.push(`/interview?round=${roundType}`)} className="btn-green" style={{ width:'100%', maxWidth:380, padding:16, fontSize:16, background:'linear-gradient(135deg,#A0AB97,#8F9B88)', color:'white', border:'none', borderRadius:'12px', cursor:'pointer', fontWeight:700 }}>Start {roundType==='technical'?'technical':'HR'} interview →</button>
+              
+              <button onClick={()=>{setIsUploaded(false);setFileName('');setMessage('');}} style={{ marginTop:14, background:'none', border:'none', color:'#6F6A63', fontSize:13, cursor:'pointer', fontWeight:600 }}>Use a different resume</button>
             </div>
           )}
         </div>
@@ -169,31 +223,31 @@ export default function UploadPage() {
         {/* Right info panel */}
         <div style={{ padding:'32px 24px', background:'rgba(46,42,37,0.5)', backdropFilter:'blur(8px)', display:'flex', flexDirection:'column', gap:20, animation:mounted?'fadeRight 0.5s 0.3s ease both':undefined, opacity:mounted?undefined:0 }}>
           <div>
-            <p style={{ margin:'0 0 12px', fontSize:11, fontWeight:700, color:'#6F6A63', textTransform:'uppercase', letterSpacing:'0.08em' }}>How it works</p>
+            <p style={{ margin:'0 0 12px', fontSize:11, fontWeight:700, color:'#F3E8DA', textTransform:'uppercase', letterSpacing:'0.08em' }}>How it works</p>
             {[{icon:'🔍',title:'Resume analysis',desc:'AI reads your skills and projects'},{icon:'❓',title:'Custom questions',desc:'5 questions from your background'},{icon:'🎥',title:'Video recording',desc:'Silence detection auto-stops clips'},{icon:'📊',title:'Instant scoring',desc:'Speech, eye contact, and posture'}].map(({icon,title,desc})=>(
               <div key={title} style={{ display:'flex', gap:10, marginBottom:12 }}>
-                <div style={{ width:32, height:32, background:'rgba(160,171,151,0.08)', border:'1px solid #D8C7B3', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:14, transition:'transform 0.15s' }}
+                <div style={{ width:32, height:32, background:'rgba(160,171,151,0.15)', border:'1px solid #D8C7B3', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:14, transition:'transform 0.15s' }}
                   onMouseEnter={e=>(e.currentTarget.style.transform='scale(1.1) rotate(-3deg)')}
                   onMouseLeave={e=>(e.currentTarget.style.transform='none')}>{icon}</div>
                 <div>
-                  <p style={{ margin:'0 0 1px', fontSize:12, fontWeight:600, color:'#2E2A25' }}>{title}</p>
-                  <p style={{ margin:0, fontSize:11, color:'#6F6A63', lineHeight:1.4 }}>{desc}</p>
+                  <p style={{ margin:'0 0 1px', fontSize:12, fontWeight:600, color:'#F3E8DA' }}>{title}</p>
+                  <p style={{ margin:0, fontSize:11, color:'#D8C7B3', lineHeight:1.4 }}>{desc}</p>
                 </div>
               </div>
             ))}
           </div>
-          <div style={{ borderTop:'1px solid rgba(160,171,151,0.1)', paddingTop:18 }}>
-            <p style={{ margin:'0 0 10px', fontSize:11, fontWeight:700, color:'#6F6A63', textTransform:'uppercase', letterSpacing:'0.08em' }}>Tips</p>
+          <div style={{ borderTop:'1px solid rgba(160,171,151,0.2)', paddingTop:18 }}>
+            <p style={{ margin:'0 0 10px', fontSize:11, fontWeight:700, color:'#F3E8DA', textTransform:'uppercase', letterSpacing:'0.08em' }}>Tips</p>
             {['Well-structured resume = better questions','Check camera and mic before starting','Quiet room, good lighting facing you'].map((tip,i)=>(
               <div key={i} style={{ display:'flex', gap:7, alignItems:'flex-start', marginBottom:8 }}>
                 <span style={{ fontSize:9, color:'#A0AB97', marginTop:4, flexShrink:0 }}>●</span>
-                <p style={{ margin:0, fontSize:12, color:'#6F6A63', lineHeight:1.5 }}>{tip}</p>
+                <p style={{ margin:0, fontSize:12, color:'#D8C7B3', lineHeight:1.5 }}>{tip}</p>
               </div>
             ))}
           </div>
-          <div style={{ marginTop:'auto', padding:13, background:'rgba(160,171,151,0.06)', border:'1px solid rgba(160,171,151,0.15)', borderRadius:11 }}>
-            <p style={{ margin:'0 0 3px', fontSize:12, fontWeight:600, color:'#2E2A25' }}>🔒 Your data is safe</p>
-            <p style={{ margin:0, fontSize:11, color:'#6F6A63', lineHeight:1.5 }}>Processed securely. Never shared with third parties.</p>
+          <div style={{ marginTop:'auto', padding:13, background:'rgba(160,171,151,0.1)', border:'1px solid rgba(160,171,151,0.2)', borderRadius:11 }}>
+            <p style={{ margin:'0 0 3px', fontSize:12, fontWeight:600, color:'#F3E8DA' }}>🔒 Your data is safe</p>
+            <p style={{ margin:0, fontSize:11, color:'#D8C7B3', lineHeight:1.5 }}>Processed securely. Never shared with third parties.</p>
           </div>
         </div>
       </div>
