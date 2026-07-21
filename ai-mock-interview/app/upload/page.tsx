@@ -117,7 +117,7 @@ export default function UploadPage() {
       <div style={{ background:'linear-gradient(135deg,rgba(160,171,151,0.85),rgba(160,171,151,0.85))', backdropFilter:'blur(8px)', padding:'32px', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:14, position:'relative', zIndex:1, animation:mounted?'fadeUp 0.5s 0.1s ease both':undefined, opacity:mounted?undefined:0 }}>
         <div>
           <h1 style={{ margin:'0 0 5px', fontSize:24, fontWeight:800, color:'#2E2A25', letterSpacing:'-0.3px' }}>Start your interview</h1>
-          <p style={{ margin:0, color:'rgba(46,42,37,0.8)', fontSize:13 }}>Upload your resume — AI generates 5 questions from your actual experience.</p>
+          <p style={{ margin:0, color:'rgba(46,42,37,0.8)', fontSize:13 }}>Upload your resume — AI generates 8 questions from your actual experience.</p>
         </div>
         <div style={{ display:'flex', alignItems:'center' }}>
           {[{n:'1',label:'Upload',active:true},{n:'2',label:'AI reads',active:false},{n:'3',label:'Interview',active:false}].map(({n,label,active},i)=>(
@@ -188,14 +188,17 @@ export default function UploadPage() {
               <h2 style={{ margin:'0 0 6px', fontSize:24, fontWeight:800, color:'#8F9B88' }}>Resume ready</h2>
               <p style={{ margin:'0 0 3px', fontSize:13, color:'#6F6A63' }}>{fileName}</p>
               <p style={{ margin:'0 0 28px', fontSize:14, color:'#6F6A63', lineHeight:1.6, maxWidth:380 }}>Processed. The AI is ready to generate your interview questions.</p>
+              
+              {/* FIXED UI BOXES HERE */}
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, width:'100%', maxWidth:380, marginBottom:28 }}>
-                {[{label:'Questions',v:'5'},{label:'Est. time',v:'~15 min'},{label:'Skills scored',v:'3'}].map(({label,v},i)=>(
+                {[{label:'Questions',v:'8'},{label:'Est. time',v:'~25 min'},{label:'Skills scored',v:'3'}].map(({label,v},i)=>(
                   <div key={label} style={{ background:'#EFE3D2', border:'1px solid #D8C7B3', borderRadius:11, padding:'13px 8px', animation:`popIn 0.4s ease ${i*70}ms both` }}>
                     <p style={{ margin:'0 0 2px', fontSize:18, fontWeight:700, color:'#2E2A25' }}>{v}</p>
                     <p style={{ margin:0, fontSize:10, color:'#6F6A63' }}>{label}</p>
                   </div>
                 ))}
               </div>
+
               <p style={{ margin:'0 0 10px', fontSize:12, fontWeight:700, color:'#6F6A63', textTransform:'uppercase', letterSpacing:'0.06em', width:'100%', maxWidth:380, textAlign:'left' }}>Choose round type</p> 
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, width:'100%', maxWidth:380, marginBottom:20 }}>   
                 {[
@@ -224,7 +227,9 @@ export default function UploadPage() {
         <div style={{ padding:'32px 24px', background:'rgba(46,42,37,0.5)', backdropFilter:'blur(8px)', display:'flex', flexDirection:'column', gap:20, animation:mounted?'fadeRight 0.5s 0.3s ease both':undefined, opacity:mounted?undefined:0 }}>
           <div>
             <p style={{ margin:'0 0 12px', fontSize:11, fontWeight:700, color:'#F3E8DA', textTransform:'uppercase', letterSpacing:'0.08em' }}>How it works</p>
-            {[{icon:'🔍',title:'Resume analysis',desc:'AI reads your skills and projects'},{icon:'❓',title:'Custom questions',desc:'5 questions from your background'},{icon:'🎥',title:'Video recording',desc:'Silence detection auto-stops clips'},{icon:'📊',title:'Instant scoring',desc:'Speech, eye contact, and posture'}].map(({icon,title,desc})=>(
+            
+            {/* FIXED TEXT IN HOW IT WORKS SECTION */}
+            {[{icon:'🔍',title:'Resume analysis',desc:'AI reads your skills and projects'},{icon:'❓',title:'Custom questions',desc:'8 questions from your background'},{icon:'🎥',title:'Video recording',desc:'Silence detection auto-stops clips'},{icon:'📊',title:'Instant scoring',desc:'Speech, eye contact, and posture'}].map(({icon,title,desc})=>(
               <div key={title} style={{ display:'flex', gap:10, marginBottom:12 }}>
                 <div style={{ width:32, height:32, background:'rgba(160,171,151,0.15)', border:'1px solid #D8C7B3', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:14, transition:'transform 0.15s' }}
                   onMouseEnter={e=>(e.currentTarget.style.transform='scale(1.1) rotate(-3deg)')}
