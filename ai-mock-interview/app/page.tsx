@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabaseClient';
+import { MockStarLogo } from './components/Logo';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -94,13 +95,13 @@ export default function LandingPage() {
       {/* Navbar */}
       <nav style={{ position:'sticky', top:0, zIndex:50, backdropFilter:'blur(16px)', background:'rgba(46,42,37,0.85)', borderBottom:'1px solid rgba(160,171,151,0.1)', padding:'0 48px', display:'flex', alignItems:'center', justifyContent:'space-between', height:'64px' }}>
         <div onClick={() => window.scrollTo(0,0)} className="btn-h" style={{ display:'flex', alignItems:'center', gap:'10px', cursor:'pointer' }}>
-          <div style={{ width:'32px', height:'32px', borderRadius:'9px', background:'linear-gradient(135deg,#A0AB97,#8F9B88)', backgroundSize:'200% 200%', animation:'gradShift 4s ease infinite', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, color:'#2E2A25', fontSize:'15px', boxShadow:'0 4px 12px rgba(160,171,151,0.4)' }}>M</div>
-         <span style={{ fontSize:'17px', fontWeight:800, color:'#F3E8DA', letterSpacing:'-0.3px' }}>MockStar</span>
+          <MockStarLogo size={32} />
+          <span style={{ fontSize:'17px', fontWeight:800, color:'#F3E8DA', letterSpacing:'-0.3px' }}>MockStar</span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:'4px' }}>
           <a href="#features" className="nav-link">Features</a>
           <a href="#how-it-works" className="nav-link">How it works</a>
-          <a href="#who-it's-for" className="nav-link">Who it's for</a>
+          <a href="#who-its-for" className="nav-link">Who it's for</a>
          
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
@@ -294,7 +295,7 @@ export default function LandingPage() {
       </section>
 
       {/* Who it's for */}
-      <section style={{ maxWidth:'1200px', margin:'0 auto', padding:'80px 48px', position:'relative', zIndex:1 }}>
+      <section id="who-its-for" style={{ maxWidth:'1200px', margin:'0 auto', padding:'80px 48px', position:'relative', zIndex:1 }}>
         <div style={{ textAlign:'center', marginBottom:'48px' }}>
           <div className="section-label">Who it's for</div>
           <h2 style={{ fontSize:'clamp(28px,4vw,40px)', fontWeight:800, color:'#2E2A25', letterSpacing:'-1.5px', margin:0 }}>Built for the moments that matter most.</h2>
@@ -341,7 +342,7 @@ export default function LandingPage() {
       <footer style={{ borderTop:'1px solid rgba(160,171,151,0.08)', position:'relative', zIndex:1 }}>
         <div style={{ maxWidth:'1200px', margin:'0 auto', padding:'28px 48px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <div onClick={() => window.scrollTo(0,0)} className="btn-h" style={{ display:'flex', alignItems:'center', gap:'8px', cursor:'pointer' }}>
-            <div style={{ width:'22px', height:'22px', borderRadius:'6px', background:'linear-gradient(135deg,#A0AB97,#8F9B88)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, color:'#2E2A25', fontSize:'11px' }}>M</div>
+            <MockStarLogo size={24} />
             <span style={{ fontSize:'13px', fontWeight:700, color:'#2E2A25' }}>MockStar</span>
           </div>
           <div style={{ fontSize:'12px', color:'#6F6A63' }}>© 2026 MockStar · AI-powered interview practice</div>

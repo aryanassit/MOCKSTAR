@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { MockStarLogo } from '../components/Logo';
 
 function ScoreBarChart({ speech, eye, posture }: { speech: number; eye: number; posture: number }) {
   const [drawn, setDrawn] = useState(false);
@@ -561,7 +562,7 @@ function InterviewRoomInner() {
       {/* Header */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #D8C7B3', paddingBottom:'16px', marginBottom:'28px', maxWidth:'1200px', margin:'0 auto 28px', position:'relative', zIndex:1, animation:'fadeUp 0.5s ease' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-          <div style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#A0AB97', animation:'pulseDot 2s ease infinite' }} />
+          <MockStarLogo size={28} />
           <h2 style={{ margin:0, color:'#2E2A25', fontSize:'18px', fontWeight:700 }}>{roundType === 'hr' ? 'HR Interview' : 'Technical Interview'}</h2>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
