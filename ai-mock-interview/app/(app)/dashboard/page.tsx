@@ -192,7 +192,7 @@ export default function Dashboard() {
               <SkillBar label="Speech content" value={avgS} color="#8F9B88" delay={400}/>
               <SkillBar label="Eye contact"    value={avgE} color="#A0AB97" delay={500}/>
               <SkillBar label="Posture"        value={avgP} color="#A0AB97" delay={600}/>
-              {avgE<70&&<div style={{ padding:'9px 11px', background:'rgba(234,179,8,0.08)', border:'1px solid rgba(234,179,8,0.2)', borderRadius:8, fontSize:12, color:'#fbbf24', marginTop:4 }}>Focus: look at the camera lens, not your preview window.</div>}
+              {avgE<70&&<div style={{ padding:'9px 11px', background:'rgba(234,179,8,0.08)', border:'1px solid rgba(234,179,8,0.2)', borderRadius:8, fontSize:12, color:'#996515', marginTop:4 }}>Focus: look at the camera lens, not your preview window.</div>}
             </div>
 
             <div className={`card-hover ${mounted?'anim-fade-up d-400':''}`} style={{ ...card, padding:'1.1rem 1.25rem', opacity:mounted?undefined:0 }}>
