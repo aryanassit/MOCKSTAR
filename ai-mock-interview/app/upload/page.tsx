@@ -95,7 +95,7 @@ export default function UploadPage() {
 
       {/* Navbar */}
       <nav style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 32px', borderBottom:'1px solid rgba(160,171,151,0.1)', backdropFilter:'blur(12px)', background:'rgba(46,42,37,0.8)', position:'relative', zIndex:10, animation:mounted?'fadeUp 0.4s ease both':undefined }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+        <div onClick={() => router.push('/')} className="btn-h" style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer' }}>
           <div style={{ width:30, height:30, borderRadius:8, background:'linear-gradient(135deg,#A0AB97,#8F9B88)', backgroundSize:'200% 200%', animation:'gradShift 4s ease infinite', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, color:'#2E2A25', fontSize:14, boxShadow:'0 4px 12px rgba(160,171,151,0.3)' }}>M</div>
             <span style={{ fontWeight:700, fontSize:16, color:'#F3E8DA' }}>MockStar</span>
         </div>

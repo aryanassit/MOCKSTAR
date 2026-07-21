@@ -2,14 +2,27 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '../lib/supabaseClient';
 
 export default function LandingPage() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mounted, setMounted] = useState(false);
+  
+  // NEW STATE: Track if the user is already logged in
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    
+    // NEW LOGIC: Check Supabase session on page load
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsLoggedIn(true);
+      }
+    })();
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -80,7 +93,7 @@ export default function LandingPage() {
 
       {/* Navbar */}
       <nav style={{ position:'sticky', top:0, zIndex:50, backdropFilter:'blur(16px)', background:'rgba(46,42,37,0.85)', borderBottom:'1px solid rgba(160,171,151,0.1)', padding:'0 48px', display:'flex', alignItems:'center', justifyContent:'space-between', height:'64px' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+        <div onClick={() => window.scrollTo(0,0)} className="btn-h" style={{ display:'flex', alignItems:'center', gap:'10px', cursor:'pointer' }}>
           <div style={{ width:'32px', height:'32px', borderRadius:'9px', background:'linear-gradient(135deg,#A0AB97,#8F9B88)', backgroundSize:'200% 200%', animation:'gradShift 4s ease infinite', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, color:'#2E2A25', fontSize:'15px', boxShadow:'0 4px 12px rgba(160,171,151,0.4)' }}>M</div>
          <span style={{ fontSize:'17px', fontWeight:800, color:'#F3E8DA', letterSpacing:'-0.3px' }}>MockStar</span>
         </div>
@@ -91,8 +104,15 @@ export default function LandingPage() {
          
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-          <button className="nav-link" onClick={() => router.push('/login')}>Sign in</button>
-          <button className="btn-primary" style={{ padding:'9px 20px', fontSize:'14px' }} onClick={() => router.push('/login')}>Get started →</button>
+          {/* DYNAMIC NAVBAR BUTTONS */}
+          {isLoggedIn ? (
+            <button className="btn-primary" style={{ padding:'9px 20px', fontSize:'14px' }} onClick={() => router.push('/dashboard')}>Go to Dashboard →</button>
+          ) : (
+            <>
+              <button className="nav-link" onClick={() => router.push('/login')}>Sign in</button>
+              <button className="btn-primary" style={{ padding:'9px 20px', fontSize:'14px' }} onClick={() => router.push('/login')}>Get started →</button>
+            </>
+          )}
         </div>
       </nav>
 
@@ -112,7 +132,7 @@ export default function LandingPage() {
           </h1>
 
           <p style={{ fontSize:'17px', color:'rgba(46,42,37,0.5)', lineHeight:1.7, margin:'0 0 32px', maxWidth:'480px' }}>
-            Upload your resume. Get 5 tailored questions generated from your actual experience. Answer on camera and get scored on speech content, eye contact, and posture — instantly.
+            Upload your resume. Get 8 tailored questions generated from your actual experience. Answer on camera and get scored on speech content, eye contact, and posture — instantly.
           </p>
 
           <div style={{ display:'flex', gap:'8px', marginBottom:'36px', flexWrap:'wrap' }}>
@@ -125,7 +145,12 @@ export default function LandingPage() {
           </div>
 
           <div style={{ display:'flex', gap:'12px', alignItems:'center', marginBottom:'40px' }}>
-            <button className="btn-primary" onClick={() => router.push('/login')}>Start for free →</button>
+            {/* DYNAMIC HERO BUTTON */}
+            {isLoggedIn ? (
+              <button className="btn-primary" onClick={() => router.push('/dashboard')}>Go to Dashboard →</button>
+            ) : (
+              <button className="btn-primary" onClick={() => router.push('/login')}>Start for free →</button>
+            )}
             <button className="btn-outline" onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior:'smooth' })}>See how it works</button>
           </div>
 
@@ -150,13 +175,13 @@ export default function LandingPage() {
 
             {/* Question */}
             <div style={{ marginBottom:'16px' }}>
-              <div style={{ fontSize:'10px', color:'#8F9B88', textTransform:'uppercase', letterSpacing:'1px', fontWeight:700, marginBottom:'7px' }}>Question 2 of 5</div>
+              <div style={{ fontSize:'10px', color:'#8F9B88', textTransform:'uppercase', letterSpacing:'1px', fontWeight:700, marginBottom:'7px' }}>Question 2 of 8</div>
               <div style={{ fontSize:'14px', color:'#2E2A25', lineHeight:1.55, fontWeight:600 }}>"Walk me through a project where you had to balance technical debt against delivery speed."</div>
             </div>
 
             {/* Progress dots */}
             <div style={{ display:'flex', gap:'4px', marginBottom:'14px' }}>
-              {[1,2,3,4,5].map(i => (
+              {[1,2,3,4,5,6,7,8].map(i => (
                 <div key={i} style={{ height:'4px', borderRadius:'99px', background: i<=2?'#A0AB97':'#D8C7B3', flex: i===2?2:1, transition:'all 0.3s' }} />
               ))}
             </div>
@@ -207,10 +232,10 @@ export default function LandingPage() {
       {/* Stats bar */}
       <div style={{ borderTop:'1px solid rgba(160,171,151,0.08)', borderBottom:'1px solid rgba(160,171,151,0.08)', background:'rgba(117,98,78,0.5)', backdropFilter:'blur(8px)', position:'relative', zIndex:1 }}>
         <div style={{ maxWidth:'1200px', margin:'0 auto', padding:'28px 48px', display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'24px' }}>
-          {[{val:'5',label:'Questions per session',icon:'❓'},{val:'3',label:'Skills scored per session',icon:'📊'},{val:'~15 min',label:'Average session time',icon:'⏱'},{val:'Instant',label:'AI feedback turnaround',icon:'⚡'}].map(({val,label,icon})=>(
+          {[{val:'8',label:'Questions per session',icon:'❓'},{val:'3',label:'Skills scored per session',icon:'📊'},{val:'~25 min',label:'Average session time',icon:'⏱'},{val:'Instant',label:'AI feedback turnaround',icon:'⚡'}].map(({val,label,icon})=>(
             <div key={label} style={{ textAlign:'center' }}>
               <div style={{ fontSize:'20px', marginBottom:'6px' }}>{icon}</div>
-              <div style={{ fontSize:'22px', fontWeight:800, color:'#8F9B88', marginBottom:'3px' }}>{val}</div>
+              <div style={{ fontSize:'22px', fontWeight:800, color:'#4a5e3fff', marginBottom:'3px' }}>{val}</div>
               <div style={{ fontSize:'11px', color:'#6F6A63' }}>{label}</div>
             </div>
           ))}
@@ -245,13 +270,13 @@ export default function LandingPage() {
         <div style={{ maxWidth:'1200px', margin:'0 auto', padding:'80px 48px' }}>
           <div style={{ textAlign:'center', marginBottom:'56px' }}>
             <div className="section-label">How it works</div>
-            <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:800, color:'#2E2A25', letterSpacing:'-1.5px', margin:0 }}>From resume to feedback in 15 minutes.</h2>
+            <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:800, color:'#2E2A25', letterSpacing:'-1.5px', margin:0 }}>From resume to feedback in 25 minutes.</h2>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'20px', position:'relative' }}>
-            <div style={{ position:'absolute', top:'18px', left:'12.5%', right:'12.5%', height:'1px', background:'linear-gradient(90deg,rgba(160,171,151,0.3),rgba(160,171,151,0.6),rgba(160,171,151,0.3))', pointerEvents:'none' }} />
+            <div style={{ position:'absolute', top:'18px', left:'12.5%', right:'12.5%', height:'1px', background:'linear-gradient(90deg,rgba(66, 108, 32, 0.3),rgba(123, 185, 73, 0.6),rgba(54, 104, 13, 0.3))', pointerEvents:'none' }} />
             {[
               { n:'1', icon:'📄', title:'Upload resume', desc:'We extract your skills, projects, and experience — no manual input needed.' },
-              { n:'2', icon:'❓', title:'Get 5 questions', desc:'Gemini generates questions tailored to what is actually on your resume.' },
+              { n:'2', icon:'❓', title:'Get 8 questions', desc:'Gemini generates questions tailored to what is actually on your resume.' },
               { n:'3', icon:'🎥', title:'Answer on camera', desc:'Silence detection auto-stops recording. No button pressing needed.' },
               { n:'4', icon:'📊', title:'Get your scores', desc:'Speech content, eye contact, and posture — with written AI feedback.' },
             ].map(({ n, icon, title, desc }) => (
@@ -297,9 +322,16 @@ export default function LandingPage() {
             <div style={{ position:'relative' }}>
               <div style={{ fontSize:'36px', marginBottom:'16px' }}>🎯</div>
               <h2 style={{ fontSize:'clamp(24px,4vw,38px)', fontWeight:800, color:'#2E2A25', letterSpacing:'-1.2px', margin:'0 0 14px' }}>Your next interview is closer<br />than you think.</h2>
-              <p style={{ color:'rgba(46,42,37,0.45)', fontSize:'16px', margin:'0 0 32px', lineHeight:1.7 }}>No credit card. No onboarding call. Just upload your resume and start in under 2 minutes.</p>
-              <button className="btn-primary" style={{ padding:'16px 36px', fontSize:'16px' }} onClick={() => router.push('/login')}>Get started for free →</button>
-              <div style={{ marginTop:'16px', fontSize:'12px', color:'#6F6A63' }}>Free plan · No credit card required</div>
+              <p style={{ color:'rgba(49, 31, 9, 0.45)', fontSize:'16px', margin:'0 0 32px', lineHeight:1.7 }}>No credit card. No onboarding call. Just upload your resume and start in under 2 minutes.</p>
+              
+              {/* DYNAMIC FOOTER CTA */}
+              {isLoggedIn ? (
+                <button className="btn-primary" style={{ padding:'16px 36px', fontSize:'16px' }} onClick={() => router.push('/dashboard')}>Go to Dashboard →</button>
+              ) : (
+                <button className="btn-primary" style={{ padding:'16px 36px', fontSize:'16px' }} onClick={() => router.push('/login')}>Get started for free →</button>
+              )}
+              
+              <div style={{ marginTop:'16px', fontSize:'12px', color:'#44331bff' }}>Free plan · No credit card required</div>
             </div>
           </div>
         </div>
@@ -308,11 +340,11 @@ export default function LandingPage() {
       {/* Footer */}
       <footer style={{ borderTop:'1px solid rgba(160,171,151,0.08)', position:'relative', zIndex:1 }}>
         <div style={{ maxWidth:'1200px', margin:'0 auto', padding:'28px 48px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+          <div onClick={() => window.scrollTo(0,0)} className="btn-h" style={{ display:'flex', alignItems:'center', gap:'8px', cursor:'pointer' }}>
             <div style={{ width:'22px', height:'22px', borderRadius:'6px', background:'linear-gradient(135deg,#A0AB97,#8F9B88)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, color:'#2E2A25', fontSize:'11px' }}>M</div>
             <span style={{ fontSize:'13px', fontWeight:700, color:'#2E2A25' }}>MockStar</span>
           </div>
-          <div style={{ fontSize:'12px', color:'#6F6A63' }}>© 2025 MockStar · AI-powered interview practice</div>
+          <div style={{ fontSize:'12px', color:'#6F6A63' }}>© 2026 MockStar · AI-powered interview practice</div>
           <div style={{ display:'flex', gap:'16px' }}>
             <a href="#" style={{ fontSize:'12px', color:'#6F6A63', textDecoration:'none' }}>Privacy</a>
             <a href="#" style={{ fontSize:'12px', color:'#6F6A63', textDecoration:'none' }}>Terms</a>

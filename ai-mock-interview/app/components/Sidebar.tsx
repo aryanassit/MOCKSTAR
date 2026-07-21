@@ -36,7 +36,7 @@ export default function Sidebar() {
   return (
     <aside style={{ width:'210px', flexShrink:0, background:'#75624E', borderRight:'1px solid #75624E', display:'flex', flexDirection:'column', padding:'1rem 0.75rem', minHeight:'100vh' }}>
 
-      <div className={mounted?'anim-fade-left d-0':''} style={{ display:'flex', alignItems:'center', gap:'9px', padding:'0 6px 1.25rem', opacity:mounted?undefined:0 }}>
+      <div onClick={() => router.push('/')} className={mounted?'anim-fade-left d-0 btn-h':''} style={{ display:'flex', alignItems:'center', gap:'9px', padding:'0 6px 1.25rem', opacity:mounted?undefined:0, cursor:'pointer' }}>
         <div style={{ width:'28px', height:'28px', borderRadius:'8px', background:'linear-gradient(135deg,#A0AB97,#8F9B88)', backgroundSize:'200% 200%', animation:'gradShift 4s ease infinite', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, color:'#2E2A25', fontSize:'13px', boxShadow:'0 2px 10px rgba(160,171,151,0.4)', flexShrink:0 }}>M</div>
         <span style={{ fontSize:'14px', fontWeight:700, color:'#F3E8DA', letterSpacing:'-0.2px' }}>MockStar</span>
       </div>
