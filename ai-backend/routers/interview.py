@@ -32,23 +32,25 @@ def generate_questions(req: ResumeRequest):
 
         if req.round_type == "hr":
             prompt = f"""
-            Act as an expert HR interviewer. Read the following candidate's resume text:
+            Act as a STRICT and EXPERT Executive HR Director. Read the following candidate's resume text:
             ---
             {resume_text}
             ---
-            Generate exactly 5 HR/behavioral interview questions based on their background.
-            Focus on culture fit, communication, teamwork, leadership, conflict resolution, and career motivation.
-            Avoid deep technical questions.
-            Return ONLY the 5 questions separated by newlines, do not include numbers, bullet points, or introductory text.
+            Generate exactly 5 highly unique, scenario-based behavioral interview questions.
+            Do NOT ask basic questions like "Tell me about yourself" or "What is your biggest weakness."
+            Instead, ask obscure and complex questions. RANDOMLY select 5 entirely different themes every time you are called (e.g., severe conflict resolution, managing failing projects, adapting to sudden leadership changes, etc.).
+            Return ONLY the 5 questions separated by newlines. Do not include numbers, bullet points, or introductory text.
             """
         else:
             prompt = f"""
-            Act as an expert technical recruiter. Read the following candidate's resume text:
+            Act as a STRICT and EXPERT Senior Engineering Manager. Read the following candidate's resume text:
             ---
             {resume_text}
             ---
-            Based ONLY on their specific skills and past projects, generate exactly 5 challenging technical interview questions.
-            Return ONLY the 5 questions separated by newlines, do not include numbers, bullet points, or introductory text.
+            Based ONLY on their specific skills and past projects, generate exactly 5 highly unique, obscure, and complex technical interview questions.
+            Do NOT ask generic definition questions (e.g., "What is React?"). Instead, ask deep, scenario-based architecture, debugging, or scaling questions related to their exact projects.
+            RANDOMLY select 5 entirely different sub-topics or specific tools from their resume so the interview is completely different every time.
+            Return ONLY the 5 questions separated by newlines. Do not include numbers, bullet points, or introductory text.
             """
 
         ai_response = client.models.generate_content(
