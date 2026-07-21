@@ -36,10 +36,10 @@ def generate_questions(req: ResumeRequest):
             ---
             {resume_text}
             ---
-            Generate exactly 5 highly unique, scenario-based behavioral interview questions.
+            Generate exactly 8 highly unique, scenario-based behavioral interview questions.
             Do NOT ask basic questions like "Tell me about yourself" or "What is your biggest weakness."
-            Instead, ask obscure and complex questions. RANDOMLY select 5 entirely different themes every time you are called (e.g., severe conflict resolution, managing failing projects, adapting to sudden leadership changes, etc.).
-            Return ONLY the 5 questions separated by newlines. Do not include numbers, bullet points, or introductory text.
+            Instead, ask obscure and complex questions. RANDOMLY select 8 entirely different themes every time you are called (e.g., severe conflict resolution, managing failing projects, adapting to sudden leadership changes, etc.).
+            Return ONLY the 8 questions separated by newlines. Do not include numbers, bullet points, or introductory text.
             """
         else:
             prompt = f"""
@@ -47,10 +47,10 @@ def generate_questions(req: ResumeRequest):
             ---
             {resume_text}
             ---
-            Based ONLY on their specific skills and past projects, generate exactly 5 highly unique, obscure, and complex technical interview questions.
+            Based ONLY on their specific skills and past projects, generate exactly 8 highly unique, obscure, and complex technical interview questions.
             Do NOT ask generic definition questions (e.g., "What is React?"). Instead, ask deep, scenario-based architecture, debugging, or scaling questions related to their exact projects.
-            RANDOMLY select 5 entirely different sub-topics or specific tools from their resume so the interview is completely different every time.
-            Return ONLY the 5 questions separated by newlines. Do not include numbers, bullet points, or introductory text.
+            RANDOMLY select 8 entirely different sub-topics or specific tools from their resume so the interview is completely different every time.
+            Return ONLY the 8 questions separated by newlines. Do not include numbers, bullet points, or introductory text.
             """
 
         ai_response = client.models.generate_content(
@@ -58,7 +58,7 @@ def generate_questions(req: ResumeRequest):
             contents=prompt,
         )
         questions = [q.strip() for q in ai_response.text.strip().split('\n') if q.strip()]
-        return {"questions": questions[:5]}
+        return {"questions": questions[:8]}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Backend Error: {str(e)}")
