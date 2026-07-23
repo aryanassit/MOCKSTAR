@@ -53,15 +53,66 @@ def generate_questions(req: ResumeRequest):
             Return ONLY the 8 questions separated by newlines. Do not include numbers, bullet points, or introductory text.
             """
 
-        ai_response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt,
-        )
-        questions = [q.strip() for q in ai_response.text.strip().split('\n') if q.strip()]
+        print("🔍 Fetching and auto-detecting available models...")
+        
+        # 1. Fetch all available models for this specific AQ key
+        available_models = [
+            m.name for m in client.models.list() 
+            if "flash" in m.name 
+            and "preview" not in m.name 
+            and "audio" not in m.name 
+            and "image" not in m.name
+        ]
+        
+        # 2. Sort descending so we try the newest ones first (e.g., 3.6, 3.5, then 2.5)
+        available_models.sort(reverse=True)
+        
+        questions = []
+        model_success = False
+
+        # 3. Loop through and try generating content
+        for model_name in available_models:
+            try:
+                print(f"⏳ Attempting to generate questions using: {model_name}...")
+                
+                ai_response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt
+                )
+                
+                print(f"✅ SUCCESS! Backend successfully generated questions using: {model_name}")
+                questions = [q.strip() for q in ai_response.text.strip().split('\n') if q.strip()]
+                model_success = True
+                break # Exit the loop since we got a successful response!
+                
+            except Exception as e:
+                print(f"⚠️ {model_name} failed. Moving to next model...")
+                continue
+                
+        # 4. If all models failed, manually trigger the fallback block below
+        if not model_success:
+            raise Exception("All available Gemini models rejected the request.")
+
         return {"questions": questions[:8]}
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Backend Error: {str(e)}")
+        print(f"⚠️ Caught an error (API Limit or PDF issue): {e}")
+        print("🛡️ Deploying fallback safety net...")
+        
+        # 8 Hardcoded fallback questions
+        fallback_questions = [
+            "Tell me about a time you had to learn a completely new technology or skill on the fly.",
+            "Describe a situation where you had a technical disagreement with a teammate. How did you resolve it?",
+            "Walk me through the most complex technical problem you have successfully solved.",
+            "Can you explain a project you are particularly proud of from your resume?",
+            "How do you prioritize your tasks when you are facing multiple tight deadlines?",
+            "Describe a time when a project didn't go as planned. What did you learn from the failure?",
+            "Tell me about a time you had to step up and take leadership of a project or team.",
+            "Where do you see your career heading in the next 3 to 5 years, and how does this role fit in?"
+        ]
+        
+        # Silently return the fallback questions so the frontend never crashes!
+        return {"questions": fallback_questions}
 
 
 @router.post("/analyze-video")
