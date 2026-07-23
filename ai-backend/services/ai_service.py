@@ -90,7 +90,23 @@ def generate_speech_feedback(temp_video_path: str, question: str) -> dict:
             ),
         )
 
-        speech_data = json.loads(ai_response.text.strip())
+        # 1. Get the raw text from Gemini
+        raw_text = ai_response.text.strip()
+        
+        # 2. Strip markdown backticks if Gemini included them
+        if raw_text.startswith("```json"):
+            raw_text = raw_text[7:]
+        elif raw_text.startswith("```"):
+            raw_text = raw_text[3:]
+            
+        if raw_text.endswith("```"):
+            raw_text = raw_text[:-3]
+            
+        # 3. Clean up any remaining whitespace
+        cleaned_text = raw_text.strip()
+        
+        # 4. Safely parse the JSON
+        speech_data = json.loads(cleaned_text)
 
         if "content_score" not in speech_data:
             print(f"⚠️ Gemini response missing content_score. Raw response: {ai_response.text}")
