@@ -83,7 +83,7 @@ def generate_speech_feedback(temp_video_path: str, question: str) -> dict:
         """
 
         ai_response = client.models.generate_content(
-            model='gemini-flash',
+            model='gemini-2.5-flash',
             contents=[gemini_video, prompt],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
