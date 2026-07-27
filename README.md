@@ -507,17 +507,17 @@ Real problems hit while building and deploying this exact project — worth chec
 
 ## 🎨 Design System
 
-MOCKSTAR uses a warm, sage-and-sand palette instead of the generic dark-mode SaaS look:
+MOCKSTAR uses a warm, sage-and-sand palette instead of the generic dark-mode SaaS look. This creates a calming environment for candidates practicing for stressful interviews:
 
-| Swatch | Hex | Used for |
-|---|---|---|
-| 🟫 | `#75624E` | Sidebar, deep accents |
-| 🟩 | `#A0AB97` | Primary accent, active states, speech-score bar |
-| 🟩 | `#8F9B88` | Secondary accent, eye-contact bar, chart line |
-| 🟤 | `#D8C7B3` | Progress-bar tracks, borders |
-| 🟨 | `#F3E8DA` / `#EFE3D2` | Page backgrounds |
-
-Charts, score bars, and the growth graph are hand-drawn inline SVG (no charting library), animated in with `strokeDashoffset` transitions and staggered fade-ins for a polished, premium feel without adding bundle weight.
+| Swatch | Hex Code | Used For |
+| :---: | :--- | :--- |
+| ⬛ | `#2E2A25` | Primary text, typography, navbar backgrounds, and high-contrast elements |
+| 🟩 | `#A0AB97` | Primary accent, primary buttons, active states, and **Speech Content** score bar |
+| 🌿 | `#8F9B88` | Secondary accent, subtle highlights, gradients, and **Eye Contact** score bar |
+| 🟫 | `#75624E` | Deep accents, sidebar/footer elements, and **Posture** score bar |
+| 🟤 | `#D8C7B3` | Progress-bar tracks, component borders, and inactive UI elements |
+| 🟨 | `#F3E8DA` | Main application page background |
+| 🍞 | `#EFE3D2` | Elevated card backgrounds, floating UI elements, and score panels |
 
 ---
 
