@@ -174,7 +174,7 @@ sequenceDiagram
         FE->>SB: Upload answer clip → video_chunks bucket
     end
 
-    Note over FE,BE: Only the FINAL answer is graded in this build,<br/>to keep grading fast and free-tier-friendly
+    Note over FE,BE: All 8 answers are graded sequentially<br/>with a 1.5s buffer to safely bypass Gemini rate limits
 
     FE->>BE: POST /analyze-video {video_url, question}
     par Vision analysis (CPU-bound)
@@ -240,6 +240,9 @@ Before ever spending a Gemini API call, `ai_service.py` checks the downloaded vi
 
 ### 7. JSON-Only AI Output
 Asking an LLM to "grade an interview" naively returns a conversational essay, which is useless to a React frontend expecting structured data. The Gemini call sets `response_mime_type="application/json"` and demands an exact 3-key schema (`content_score`, `speech_feedback`, `suggested_answer`) — the frontend can safely `JSON.parse()` the result every time.
+
+### 8. Rate-Limit Safe Sequential Processing
+Firing 8 concurrent video grading requests to Gemini instantly triggers a `429 Too Many Requests` error on the free tier. To solve this, the frontend sequentially loops through the videos (`Promise.all` is intentionally avoided) and injects a 1500ms delay between API calls. This keeps the traffic steady, completely bypasses the RPM throttle, and updates the UI progress state smoothly ("1 of 8 analyzed...").
 
 ---
 
@@ -523,7 +526,6 @@ MOCKSTAR uses a warm, sage-and-sand palette instead of the generic dark-mode Saa
 
 ## 🗺️ Roadmap
 
-- [ ] Grade **every** question, not just the final answer, without blowing the free-tier request budget
 - [ ] Real-time CV feedback during the interview itself (needs server-grade hardware to be feasible)
 - [ ] Support additional resume formats (DOCX, LinkedIn export PDF)
 - [ ] Peer / cohort comparison analytics
