@@ -447,12 +447,7 @@ uvicorn main:app --reload --port 8000
 cd ai-mock-interview
 npm install
 ```
-Create `ai-mock-interview/.env.local`:
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
-```
+
 Run:
 ```bash
 npm run dev
