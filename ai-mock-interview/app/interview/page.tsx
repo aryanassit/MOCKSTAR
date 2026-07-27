@@ -311,7 +311,7 @@ function InterviewRoomInner() {
     }
   };
 
-  // ── Analysis + save ──────────────────────────────────────────────
+  // ── Analysis + save (Rate-Limit Safe & Buffered) ─────────────────
   const analyzeFinalResults = async () => {
     setIsAnalyzing(true);
     try {
@@ -319,49 +319,66 @@ function InterviewRoomInner() {
       const total = aiQuestions.length;
       setAnalysisProgress({ current: 0, total });
 
-      // Analyze all questions concurrently — each analyze-video call is
-      // independent, so there's no reason to wait for question 1's video to
-      // finish processing before even starting question 2's. Progress updates
-      // as each one individually finishes (order of completion isn't
-      // guaranteed to match question order, but the final results array is
-      // reassembled in the correct order regardless).
-      let completedCount = 0;
-      const analyzeOne = async (i: number) => {
+      const results: any[] = [];
+
+      for (let i = 0; i < total; i++) {
         const videoUrl = videoUrlsRef.current[i];
         const question = aiQuestions[i];
+
         if (!videoUrl) {
-          completedCount++; setAnalysisProgress({ current: completedCount, total });
-          return { question, content_score: 0, eye_contact_score: 0, posture_score: 0, feedback: 'No recording was saved for this question.', suggested_answer: '' };
+          results.push({
+            question,
+            content_score: 0,
+            eye_contact_score: 0,
+            posture_score: 0,
+            feedback: 'No recording was saved for this question.',
+            suggested_answer: '',
+          });
+          setAnalysisProgress({ current: i + 1, total });
+          continue;
         }
+
         try {
           const response = await fetch(`${backendUrl}/analyze-video`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ video_url: videoUrl, question })
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ video_url: videoUrl, question }),
           });
+
           if (!response.ok) throw new Error(`Analysis failed for question ${i + 1}`);
+
           const data = await response.json();
-          completedCount++; setAnalysisProgress({ current: completedCount, total });
-          return {
+          results.push({
             question,
             content_score: data.content_score ?? 0,
             eye_contact_score: data.eye_contact_score ?? 0,
             posture_score: data.posture_score ?? 0,
             feedback: data.feedback ?? '',
             suggested_answer: data.suggested_answer ?? '',
-          };
+          });
         } catch (err) {
           console.error(`Question ${i + 1} analysis error:`, err);
-          completedCount++; setAnalysisProgress({ current: completedCount, total });
-          return { question, content_score: 0, eye_contact_score: 0, posture_score: 0, feedback: 'This answer could not be analyzed due to a technical error.', suggested_answer: '' };
+          results.push({
+            question,
+            content_score: 0,
+            eye_contact_score: 0,
+            posture_score: 0,
+            feedback: 'This answer could not be analyzed due to a technical error.',
+            suggested_answer: '',
+          });
         }
-      };
 
-      const results: any[] = await Promise.all(aiQuestions.map((_, i) => analyzeOne(i)));
+        setAnalysisProgress({ current: i + 1, total });
+
+        // Small 1.5 second pause between videos to prevent API 429 rate limit triggers
+        if (i < total - 1) {
+          await new Promise(res => setTimeout(res, 1500));
+        }
+      }
 
       setQuestionResults(results);
 
-      // Overall scores are the real average across every question, not a
-      // single question's result copy-pasted across the board.
+      // Real averages across all questions
       const avg = (key: string) => results.reduce((sum, r) => sum + (r[key] ?? 0), 0) / (results.length || 1);
       const avgContent = avg('content_score');
       const avgEye = avg('eye_contact_score');
@@ -377,19 +394,30 @@ function InterviewRoomInner() {
         feedback: combinedFeedback,
       });
 
+      // Save complete session to Supabase database
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         await supabase.from('interview_sessions').insert({
-          user_id: session.user.id, overall_score: overall,
+          user_id: session.user.id,
+          overall_score: overall,
           speech_score: Math.round(avgContent),
           eye_contact_score: Math.round(avgEye),
           posture_score: Math.round(avgPosture),
           feedback: combinedFeedback,
-          questions: results.map(r => ({ text: r.question, score: Math.round(r.content_score), feedback: r.feedback, suggested_answer: r.suggested_answer })),
+          questions: results.map(r => ({
+            text: r.question,
+            score: Math.round(r.content_score),
+            feedback: r.feedback,
+            suggested_answer: r.suggested_answer,
+          })),
         });
       }
-    } catch (e) { console.error(e); alert("Failed to analyze interview."); }
-    finally { setIsAnalyzing(false); }
+    } catch (e) {
+      console.error(e);
+      alert("Failed to analyze interview.");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   // ── Styles ───────────────────────────────────────────────────────

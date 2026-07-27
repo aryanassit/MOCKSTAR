@@ -93,7 +93,7 @@ def generate_questions(req: ResumeRequest):
         if not model_success:
             raise Exception("All available Gemini models rejected the request.")
 
-        return {"questions": questions[:8]}
+        return {"questions": questions[:1]}
 
     except Exception as e:
         print(f"⚠️ Caught an error (API Limit or PDF issue): {e}")
