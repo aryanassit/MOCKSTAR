@@ -5,6 +5,8 @@ import requests
 import tempfile
 from fastapi import APIRouter, HTTPException
 from google import genai
+from services.rag_service import query_rag_chatbot
+from pydantic import BaseModel
 
 # Import our custom models and services
 from models.schemas import ResumeRequest, VideoRequest
@@ -164,3 +166,38 @@ async def analyze_video(req: VideoRequest):
                 print("🧹 Cleaned local temp storage.")
             except Exception:
                 pass
+
+# --- RAG CHATBOT ENDPOINT ---
+
+from services.rag_service import store_feedback_in_vector_db
+
+class EmbedRequest(BaseModel):
+    session_id: str
+    feedback_text: str
+
+@router.post("/save-embedding")
+def save_embedding(req: EmbedRequest): # 🔴 REMOVED 'async' HERE!
+    try:
+        print(f"👉 Attempting to save vector for session: {req.session_id}")
+        store_feedback_in_vector_db(req.session_id, req.feedback_text)
+        print("✅ Successfully saved embedding to Supabase!")
+        return {"status": "success"}
+    except Exception as e:
+        # 🔴 FORCE THE TERMINAL TO PRINT THE EXACT ERROR!
+        print(f"🔥 SUPABASE SAVE ERROR: {str(e)}")
+        return {"error": str(e)}
+
+class ChatRequest(BaseModel):
+    session_id: str
+    message: str
+
+@router.post("/chat")
+def chat_with_bot(req: ChatRequest):
+    try:
+        # Call the RAG logic we wrote in rag_service.py
+        answer = query_rag_chatbot(req.message, req.session_id)
+        return {"reply": answer}
+    except Exception as e:
+        # Good leaders always handle errors so the server doesn't crash!
+        print(f"RAG ERROR : {str(e)}")
+        return {"error": str(e)}
