@@ -95,7 +95,7 @@ def generate_questions(req: ResumeRequest):
         if not model_success:
             raise Exception("All available Gemini models rejected the request.")
 
-        return {"questions": questions[:1]}
+        return {"questions": questions[:8]}
 
     except Exception as e:
         print(f"⚠️ Caught an error (API Limit or PDF issue): {e}")
@@ -169,16 +169,35 @@ async def analyze_video(req: VideoRequest):
 
 # --- RAG CHATBOT ENDPOINT ---
 
+from services.rag_service import store_feedback_in_vector_db
+
+class EmbedRequest(BaseModel):
+    session_id: str
+    feedback_text: str
+
+@router.post("/save-embedding")
+def save_embedding(req: EmbedRequest): # 🔴 REMOVED 'async' HERE!
+    try:
+        print(f"👉 Attempting to save vector for session: {req.session_id}")
+        store_feedback_in_vector_db(req.session_id, req.feedback_text)
+        print("✅ Successfully saved embedding to Supabase!")
+        return {"status": "success"}
+    except Exception as e:
+        # 🔴 FORCE THE TERMINAL TO PRINT THE EXACT ERROR!
+        print(f"🔥 SUPABASE SAVE ERROR: {str(e)}")
+        return {"error": str(e)}
+
 class ChatRequest(BaseModel):
     session_id: str
     message: str
 
 @router.post("/chat")
-async def chat_with_bot(req: ChatRequest):
+def chat_with_bot(req: ChatRequest):
     try:
         # Call the RAG logic we wrote in rag_service.py
         answer = query_rag_chatbot(req.message, req.session_id)
         return {"reply": answer}
     except Exception as e:
         # Good leaders always handle errors so the server doesn't crash!
+        print(f"RAG ERROR : {str(e)}")
         return {"error": str(e)}

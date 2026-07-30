@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { MockStarLogo } from '../components/Logo';
+import ChatWidget from '../components/ChatWidget';
 
 function ScoreBarChart({ speech, eye, posture }: { speech: number; eye: number; posture: number }) {
   const [drawn, setDrawn] = useState(false);
@@ -42,6 +43,7 @@ function InterviewRoomInner() {
   const videoUrlsRef = useRef<string[]>([]);
   const activeStreamRef = useRef<MediaStream | null>(null);
 
+  // --- STATE DECLARATIONS (All safely at the top!) ---
   const [userId, setUserId] = useState<string | null>(null);
   const [hasCameraAccess, setHasCameraAccess] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -56,8 +58,9 @@ function InterviewRoomInner() {
   const [questionResults, setQuestionResults] = useState<any[]>([]);
   const [analysisProgress, setAnalysisProgress] = useState({ current: 0, total: 0 });
   const [volumeLevel, setVolumeLevel] = useState(0);
+  const [activeSessionId, setActiveSessionId] = useState<string>(""); // <-- Fixed Hook Position
 
-  // ── Engagement state (loading messages, timers, toasts, celebration) ─
+  // Engagement state
   const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
@@ -76,11 +79,11 @@ function InterviewRoomInner() {
   const toggleQ = (i: number) => setExpandedQ(prev => ({ ...prev, [i]: !prev[i] }));
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-  // ── Voice feature state ──────────────────────────────────────────
+  // Voice feature state
   const [muted, setMuted] = useState(false);
   const [isSpeakingQuestion, setIsSpeakingQuestion] = useState(false);
 
-  // ── Speak a question using browser TTS ──────────────────────────
+  // Speak a question using browser TTS
   const speakQuestion = (text: string) => {
     if (!window.speechSynthesis || muted) return;
     window.speechSynthesis.cancel();
@@ -89,24 +92,23 @@ function InterviewRoomInner() {
     utterance.rate = 0.92;
     utterance.pitch = 1;
     utterance.volume = 1;
-    // Try to pick a natural voice
+    
     const trySpeak = () => {
       const voices = window.speechSynthesis.getVoices();
       const preferred =
-  voices.find(v => v.name.includes('Samantha')) ||        // macOS female
-  voices.find(v => v.name.includes('Karen')) ||           // macOS female
-  voices.find(v => v.name.includes('Zira')) ||            // Windows female
-  voices.find(v => v.name.includes('Google UK English Female')) ||
-  voices.find(v => v.name.includes('Google US English') && v.name.includes('Female')) ||
-             // generic fallback
-  voices.find(v => v.lang === 'en-US' && v.name.toLowerCase().includes('female')) ||
-  voices.find(v => v.lang === 'en-GB');                   // British English tends to be female by default
+        voices.find(v => v.name.includes('Samantha')) ||
+        voices.find(v => v.name.includes('Karen')) ||
+        voices.find(v => v.name.includes('Zira')) ||
+        voices.find(v => v.name.includes('Google UK English Female')) ||
+        voices.find(v => v.name.includes('Google US English') && v.name.includes('Female')) ||
+        voices.find(v => v.lang === 'en-US' && v.name.toLowerCase().includes('female')) ||
+        voices.find(v => v.lang === 'en-GB');
       if (preferred) utterance.voice = preferred;
       utterance.onend = () => setIsSpeakingQuestion(false);
       utterance.onerror = () => setIsSpeakingQuestion(false);
       window.speechSynthesis.speak(utterance);
     };
-    // Chrome loads voices async
+    
     if (window.speechSynthesis.getVoices().length === 0) {
       window.speechSynthesis.onvoiceschanged = () => { trySpeak(); window.speechSynthesis.onvoiceschanged = null; };
     } else {
@@ -125,19 +127,16 @@ function InterviewRoomInner() {
     if (newMuted) stopSpeaking();
   };
 
-  // ── Speak whenever question changes ─────────────────────────────
   useEffect(() => {
     if (aiQuestions.length > 0 && !isInitializing) {
       speakQuestion(aiQuestions[currentQuestionIndex]);
     }
   }, [currentQuestionIndex, aiQuestions, isInitializing]);
 
-  // ── Don't forget to stop TTS when mute is toggled ───────────────
   useEffect(() => {
     if (muted) stopSpeaking();
   }, [muted]);
 
-  // ── Cycle fun status messages while the resume is being read ────
   useEffect(() => {
     if (!isInitializing) return;
     const iv = setInterval(() => {
@@ -146,7 +145,6 @@ function InterviewRoomInner() {
     return () => clearInterval(iv);
   }, [isInitializing]);
 
-  // ── Live recording timer ─────────────────────────────────────────
   useEffect(() => {
     let iv: NodeJS.Timeout | undefined;
     if (isRecording) {
@@ -158,7 +156,6 @@ function InterviewRoomInner() {
     return () => { if (iv) clearInterval(iv); };
   }, [isRecording]);
 
-  // ── Count-up animation for final scores ──────────────────────────
   useEffect(() => {
     if (!finalScores) return;
     const targets = {
@@ -185,7 +182,6 @@ function InterviewRoomInner() {
     return () => cancelAnimationFrame(raf);
   }, [finalScores]);
 
-  // ── Celebration confetti for a solid overall score ───────────────
   useEffect(() => {
     if (!finalScores) return;
     const overall = Math.round((finalScores.content_score ?? 0) * 0.6 + (finalScores.eye_contact_score ?? 0) * 0.2 + (finalScores.posture_score ?? 0) * 0.2);
@@ -204,7 +200,6 @@ function InterviewRoomInner() {
     return () => clearTimeout(t);
   }, [finalScores]);
 
-  // ── Main init ────────────────────────────────────────────────────
   useEffect(() => {
     const init = async () => {
       try {
@@ -243,7 +238,6 @@ function InterviewRoomInner() {
       videoRef.current.srcObject = activeStreamRef.current;
   }, [isInitializing]);
 
-  // ── VAD ──────────────────────────────────────────────────────────
   const setupVAD = (stream: MediaStream) => {
     const ac = new (window.AudioContext || (window as any).webkitAudioContext)();
     audioContextRef.current = ac;
@@ -273,9 +267,8 @@ function InterviewRoomInner() {
     };
   };
 
-  // ── Recording ────────────────────────────────────────────────────
   const startRecordingAnswer = () => {
-    stopSpeaking(); // stop TTS before recording starts
+    stopSpeaking();
     if (videoRef.current?.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
       const mr = new MediaRecorder(stream, { mimeType: 'video/webm' });
@@ -311,14 +304,12 @@ function InterviewRoomInner() {
     }
   };
 
-  // ── Analysis + save (Rate-Limit Safe & Buffered) ─────────────────
   const analyzeFinalResults = async () => {
     setIsAnalyzing(true);
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       const total = aiQuestions.length;
       setAnalysisProgress({ current: 0, total });
-
       const results: any[] = [];
 
       for (let i = 0; i < total; i++) {
@@ -327,12 +318,8 @@ function InterviewRoomInner() {
 
         if (!videoUrl) {
           results.push({
-            question,
-            content_score: 0,
-            eye_contact_score: 0,
-            posture_score: 0,
-            feedback: 'No recording was saved for this question.',
-            suggested_answer: '',
+            question, content_score: 0, eye_contact_score: 0, posture_score: 0,
+            feedback: 'No recording was saved for this question.', suggested_answer: '',
           });
           setAnalysisProgress({ current: i + 1, total });
           continue;
@@ -344,9 +331,7 @@ function InterviewRoomInner() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ video_url: videoUrl, question }),
           });
-
           if (!response.ok) throw new Error(`Analysis failed for question ${i + 1}`);
-
           const data = await response.json();
           results.push({
             question,
@@ -357,34 +342,22 @@ function InterviewRoomInner() {
             suggested_answer: data.suggested_answer ?? '',
           });
         } catch (err) {
-          console.error(`Question ${i + 1} analysis error:`, err);
           results.push({
-            question,
-            content_score: 0,
-            eye_contact_score: 0,
-            posture_score: 0,
-            feedback: 'This answer could not be analyzed due to a technical error.',
-            suggested_answer: '',
+            question, content_score: 0, eye_contact_score: 0, posture_score: 0,
+            feedback: 'This answer could not be analyzed due to a technical error.', suggested_answer: '',
           });
         }
-
         setAnalysisProgress({ current: i + 1, total });
-
-        // Small 1.5 second pause between videos to prevent API 429 rate limit triggers
-        if (i < total - 1) {
-          await new Promise(res => setTimeout(res, 1500));
-        }
+        if (i < total - 1) await new Promise(res => setTimeout(res, 1500));
       }
 
       setQuestionResults(results);
 
-      // Real averages across all questions
       const avg = (key: string) => results.reduce((sum, r) => sum + (r[key] ?? 0), 0) / (results.length || 1);
       const avgContent = avg('content_score');
       const avgEye = avg('eye_contact_score');
       const avgPosture = avg('posture_score');
       const overall = Math.round(avgContent * 0.6 + avgEye * 0.2 + avgPosture * 0.2);
-
       const combinedFeedback = results.map((r, i) => `Q${i + 1}: ${r.feedback}`).join(' ');
 
       setFinalScores({
@@ -394,10 +367,9 @@ function InterviewRoomInner() {
         feedback: combinedFeedback,
       });
 
-      // Save complete session to Supabase database
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        await supabase.from('interview_sessions').insert({
+        const { data: dbData } = await supabase.from('interview_sessions').insert({
           user_id: session.user.id,
           overall_score: overall,
           speech_score: Math.round(avgContent),
@@ -410,7 +382,18 @@ function InterviewRoomInner() {
             feedback: r.feedback,
             suggested_answer: r.suggested_answer,
           })),
-        });
+        }).select(); 
+
+        if (dbData && dbData[0]) {
+          const newSessionId = dbData[0].id;
+          setActiveSessionId(newSessionId); // Save real session ID to state!
+
+          await fetch(`${backendUrl}/save-embedding`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: newSessionId, feedback_text: combinedFeedback })
+          });
+        }
       }
     } catch (e) {
       console.error(e);
@@ -420,7 +403,6 @@ function InterviewRoomInner() {
     }
   };
 
-  // ── Styles ───────────────────────────────────────────────────────
   const S = (
     <style>{`
       @keyframes spin { to{transform:rotate(360deg)} }
@@ -446,7 +428,6 @@ function InterviewRoomInner() {
     `}</style>
   );
 
-  // ── 1. Loading ───────────────────────────────────────────────────
   if (isInitializing) return (
     <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,#F3E8DA 0%,#EFE3D2 100%)', color:'#2E2A25', position:'relative', overflow:'hidden' }}>
       {S}
@@ -463,7 +444,6 @@ function InterviewRoomInner() {
     </div>
   );
 
-  // ── 2. Results ───────────────────────────────────────────────────
   if (isInterviewComplete) {
     const overall = finalScores ? Math.round((finalScores.content_score ?? 0) * 0.6 + (finalScores.eye_contact_score ?? 0) * 0.2 + (finalScores.posture_score ?? 0) * 0.2) : 0;
     const badges: { emoji: string; label: string }[] = [];
@@ -494,86 +474,90 @@ function InterviewRoomInner() {
             <p style={{ color:'#6F6A63', animation:'fadeUp 0.5s 0.1s ease both' }}>{analysisProgress.total > 0 ? `${analysisProgress.current} of ${analysisProgress.total} answers analyzed` : 'Running Computer Vision + Speech models'}</p>
           </div>
         ) : (
-          <div style={{ background:'#EFE3D2', padding:'44px 48px', borderRadius:'28px', maxWidth:'900px', width:'100%', textAlign:'center', border:'1px solid #D8C7B3', boxShadow:'0 30px 70px -15px rgba(0,0,0,0.7)', position:'relative', zIndex:1, animation:'scaleIn 0.4s cubic-bezier(0.22,1,0.36,1)' }}>
-            <div style={{ width:'76px', height:'76px', borderRadius:'50%', background:'rgba(160,171,151,0.15)', border:'2px solid rgba(160,171,151,0.5)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px', fontSize:'34px', animation:'popIn 0.6s cubic-bezier(0.22,1,0.36,1)', boxShadow:'0 0 30px rgba(160,171,151,0.3)' }}>🎉</div>
-            <h2 style={{ margin:'0 0 6px', fontSize:'28px', fontWeight:800, color:'#2E2A25', animation:'fadeUp 0.5s ease' }}>Interview Complete</h2>
-            <p style={{ color:'#6F6A63', marginBottom:'18px', fontSize:'14px', animation:'fadeUp 0.5s 0.08s ease both' }}>Your AI performance review</p>
-            {badges.length > 0 && (
-              <div style={{ display:'flex', gap:'8px', justifyContent:'center', flexWrap:'wrap', marginBottom:'26px', animation:'fadeUp 0.5s 0.14s ease both' }}>
-                {badges.map((b, i) => (
-                  <span key={i} style={{ display:'inline-flex', alignItems:'center', gap:'6px', background:'rgba(160,171,151,0.15)', border:'1px solid rgba(160,171,151,0.4)', color:'#2E2A25', fontSize:'12px', fontWeight:700, padding:'6px 12px', borderRadius:'99px' }}>
-                    <span>{b.emoji}</span>{b.label}
-                  </span>
-                ))}
-              </div>
-            )}
+          <>
+            <div style={{ background:'#EFE3D2', padding:'44px 48px', borderRadius:'28px', maxWidth:'900px', width:'100%', textAlign:'center', border:'1px solid #D8C7B3', boxShadow:'0 30px 70px -15px rgba(0,0,0,0.7)', position:'relative', zIndex:1, animation:'scaleIn 0.4s cubic-bezier(0.22,1,0.36,1)' }}>
+              <div style={{ width:'76px', height:'76px', borderRadius:'50%', background:'rgba(160,171,151,0.15)', border:'2px solid rgba(160,171,151,0.5)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px', fontSize:'34px', animation:'popIn 0.6s cubic-bezier(0.22,1,0.36,1)', boxShadow:'0 0 30px rgba(160,171,151,0.3)' }}>🎉</div>
+              <h2 style={{ margin:'0 0 6px', fontSize:'28px', fontWeight:800, color:'#2E2A25', animation:'fadeUp 0.5s ease' }}>Interview Complete</h2>
+              <p style={{ color:'#6F6A63', marginBottom:'18px', fontSize:'14px', animation:'fadeUp 0.5s 0.08s ease both' }}>Your AI performance review</p>
+              {badges.length > 0 && (
+                <div style={{ display:'flex', gap:'8px', justifyContent:'center', flexWrap:'wrap', marginBottom:'26px', animation:'fadeUp 0.5s 0.14s ease both' }}>
+                  {badges.map((b, i) => (
+                    <span key={i} style={{ display:'inline-flex', alignItems:'center', gap:'6px', background:'rgba(160,171,151,0.15)', border:'1px solid rgba(160,171,151,0.4)', color:'#2E2A25', fontSize:'12px', fontWeight:700, padding:'6px 12px', borderRadius:'99px' }}>
+                      <span>{b.emoji}</span>{b.label}
+                    </span>
+                  ))}
+                </div>
+              )}
 
-            <div style={{ display:'flex', alignItems:'center', gap:'40px', textAlign:'left', marginBottom:'28px', flexWrap:'wrap' }}>
-              <div style={{ margin:'0 auto', animation:'scaleIn 0.5s 0.12s cubic-bezier(0.22,1,0.36,1) both', textAlign:'center', flexShrink:0 }}>
-                <svg width="150" height="150" viewBox="0 0 130 130" style={{ filter:'drop-shadow(0 0 12px rgba(160,171,151,0.4))' }}>
-                  <circle cx="65" cy="65" r="56" fill="none" stroke="#EFE3D2" strokeWidth="10" />
-                  <circle cx="65" cy="65" r="56" fill="none" stroke="#A0AB97" strokeWidth="10" strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 56} strokeDashoffset={2 * Math.PI * 56 * (1 - animScores.overall / 100)}
-                    style={{ transform:'rotate(-90deg)', transformOrigin:'65px 65px', transition:'stroke-dashoffset 0.3s ease' }} />
-                  <text x="65" y="72" textAnchor="middle" fontSize="30" fontWeight="800" fill="#2E2A25">{animScores.overall}%</text>
-                </svg>
-                <p style={{ margin:'4px 0 0', fontSize:'12px', color:'#6F6A63' }}>Overall score</p>
-              </div>
-              <div style={{ flex:'1 1 320px', background:'#F3E8DA', padding:'20px 24px', borderRadius:'18px', border:'1px solid #D8C7B3', animation:'fadeUp 0.5s 0.2s ease both' }}>
-                <p style={{ margin:'0 0 14px', fontSize:'11px', color:'#6F6A63', textTransform:'uppercase', letterSpacing:'1px' }}>Score breakdown</p>
-                <ScoreBarChart speech={animScores.content} eye={animScores.eye} posture={animScores.posture} />
-              </div>
-            </div>
-
-            <div style={{ background:'#F3E8DA', padding:'18px', borderRadius:'14px', borderLeft:'4px solid #A0AB97', textAlign:'left', marginBottom:'26px', animation:'fadeUp 0.5s 0.36s ease both' }}>
-              <h4 style={{ margin:'0 0 6px', color:'#2E2A25', fontSize:'14px' }}>AI Feedback</h4>
-              <p style={{ margin:0, color:'#6F6A63', fontSize:'13px', lineHeight:1.6 }}>{finalScores?.feedback}</p>
-            </div>
-
-            {questionResults.length > 0 && (
-              <div style={{ textAlign:'left', marginBottom:'26px', animation:'fadeUp 0.5s 0.4s ease both' }}>
-                <h3 style={{ margin:'0 0 14px', fontSize:'16px', fontWeight:800, color:'#2E2A25' }}>Question-by-question breakdown</h3>
-                <p style={{ margin:'0 0 14px', fontSize:'12px', color:'#6F6A63' }}>Tap a question to see detailed feedback and a suggested answer.</p>
-                <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
-                  {questionResults.map((r, i) => {
-                    const isOpen = !!expandedQ[i];
-                    return (
-                      <div key={i} onClick={() => toggleQ(i)} style={{ background:'#F3E8DA', borderRadius:'16px', border:'1px solid #D8C7B3', padding:'16px 20px', cursor:'pointer', transition:'border-color 0.2s ease' }}>
-                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:'12px' }}>
-                          <p style={{ margin:0, fontSize:'14px', fontWeight:700, color:'#2E2A25', lineHeight:1.4, flex:1 }}>Q{i + 1}. {r.question}</p>
-                          <div style={{ display:'flex', alignItems:'center', gap:'10px', flexShrink:0 }}>
-                            <span style={{ fontSize:'13px', fontWeight:800, color:'#2E2A25', background:'rgba(160,171,151,0.3)', padding:'3px 10px', borderRadius:'99px', whiteSpace:'nowrap' }}>{Math.round(r.content_score)}%</span>
-                            <span style={{ display:'inline-block', color:'#8F9B88', fontSize:'13px', transition:'transform 0.25s ease', transform:isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
-                          </div>
-                        </div>
-                        {isOpen && (
-                          <div style={{ marginTop:'12px', animation:'fadeUp 0.3s ease' }}>
-                            <p style={{ margin:'0 0 12px', fontSize:'13px', color:'#6F6A63', lineHeight:1.6 }}>{r.feedback}</p>
-                            {r.suggested_answer && (
-                              <div style={{ background:'#EFE3D2', borderRadius:'10px', borderLeft:'3px solid #8F9B88', padding:'12px 14px' }}>
-                                <p style={{ margin:'0 0 4px', fontSize:'10px', fontWeight:700, color:'#8F9B88', textTransform:'uppercase', letterSpacing:'0.06em' }}>Suggested answer</p>
-                                <p style={{ margin:0, fontSize:'12.5px', color:'#2E2A25', lineHeight:1.6 }}>{r.suggested_answer}</p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+              <div style={{ display:'flex', alignItems:'center', gap:'40px', textAlign:'left', marginBottom:'28px', flexWrap:'wrap' }}>
+                <div style={{ margin:'0 auto', animation:'scaleIn 0.5s 0.12s cubic-bezier(0.22,1,0.36,1) both', textAlign:'center', flexShrink:0 }}>
+                  <svg width="150" height="150" viewBox="0 0 130 130" style={{ filter:'drop-shadow(0 0 12px rgba(160,171,151,0.4))' }}>
+                    <circle cx="65" cy="65" r="56" fill="none" stroke="#EFE3D2" strokeWidth="10" />
+                    <circle cx="65" cy="65" r="56" fill="none" stroke="#A0AB97" strokeWidth="10" strokeLinecap="round"
+                      strokeDasharray={2 * Math.PI * 56} strokeDashoffset={2 * Math.PI * 56 * (1 - animScores.overall / 100)}
+                      style={{ transform:'rotate(-90deg)', transformOrigin:'65px 65px', transition:'stroke-dashoffset 0.3s ease' }} />
+                    <text x="65" y="72" textAnchor="middle" fontSize="30" fontWeight="800" fill="#2E2A25">{animScores.overall}%</text>
+                  </svg>
+                  <p style={{ margin:'4px 0 0', fontSize:'12px', color:'#6F6A63' }}>Overall score</p>
+                </div>
+                <div style={{ flex:'1 1 320px', background:'#F3E8DA', padding:'20px 24px', borderRadius:'18px', border:'1px solid #D8C7B3', animation:'fadeUp 0.5s 0.2s ease both' }}>
+                  <p style={{ margin:'0 0 14px', fontSize:'11px', color:'#6F6A63', textTransform:'uppercase', letterSpacing:'1px' }}>Score breakdown</p>
+                  <ScoreBarChart speech={animScores.content} eye={animScores.eye} posture={animScores.posture} />
                 </div>
               </div>
-            )}
 
-            <button onClick={() => router.push('/dashboard')} className="btn-h" style={{ width:'100%', padding:'16px', background:'linear-gradient(135deg, #A0AB97, #8F9B88)', backgroundSize:'200% 200%', animation:'gradShift 4s ease infinite', color:'#2E2A25', border:'none', borderRadius:'14px', fontSize:'16px', fontWeight:700, cursor:'pointer', boxShadow:'0 8px 24px rgba(160,171,151,0.3)' }}>
-              Return to Dashboard
-            </button>
-          </div>
+              <div style={{ background:'#F3E8DA', padding:'18px', borderRadius:'14px', borderLeft:'4px solid #A0AB97', textAlign:'left', marginBottom:'26px', animation:'fadeUp 0.5s 0.36s ease both' }}>
+                <h4 style={{ margin:'0 0 6px', color:'#2E2A25', fontSize:'14px' }}>AI Feedback</h4>
+                <p style={{ margin:0, color:'#6F6A63', fontSize:'13px', lineHeight:1.6 }}>{finalScores?.feedback}</p>
+              </div>
+
+              {questionResults.length > 0 && (
+                <div style={{ textAlign:'left', marginBottom:'26px', animation:'fadeUp 0.5s 0.4s ease both' }}>
+                  <h3 style={{ margin:'0 0 14px', fontSize:'16px', fontWeight:800, color:'#2E2A25' }}>Question-by-question breakdown</h3>
+                  <p style={{ margin:'0 0 14px', fontSize:'12px', color:'#6F6A63' }}>Tap a question to see detailed feedback and a suggested answer.</p>
+                  <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
+                    {questionResults.map((r, i) => {
+                      const isOpen = !!expandedQ[i];
+                      return (
+                        <div key={i} onClick={() => toggleQ(i)} style={{ background:'#F3E8DA', borderRadius:'16px', border:'1px solid #D8C7B3', padding:'16px 20px', cursor:'pointer', transition:'border-color 0.2s ease' }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:'12px' }}>
+                            <p style={{ margin:0, fontSize:'14px', fontWeight:700, color:'#2E2A25', lineHeight:1.4, flex:1 }}>Q{i + 1}. {r.question}</p>
+                            <div style={{ display:'flex', alignItems:'center', gap:'10px', flexShrink:0 }}>
+                              <span style={{ fontSize:'13px', fontWeight:800, color:'#2E2A25', background:'rgba(160,171,151,0.3)', padding:'3px 10px', borderRadius:'99px', whiteSpace:'nowrap' }}>{Math.round(r.content_score)}%</span>
+                              <span style={{ display:'inline-block', color:'#8F9B88', fontSize:'13px', transition:'transform 0.25s ease', transform:isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                            </div>
+                          </div>
+                          {isOpen && (
+                            <div style={{ marginTop:'12px', animation:'fadeUp 0.3s ease' }}>
+                              <p style={{ margin:'0 0 12px', fontSize:'13px', color:'#6F6A63', lineHeight:1.6 }}>{r.feedback}</p>
+                              {r.suggested_answer && (
+                                <div style={{ background:'#EFE3D2', borderRadius:'10px', borderLeft:'3px solid #8F9B88', padding:'12px 14px' }}>
+                                  <p style={{ margin:'0 0 4px', fontSize:'10px', fontWeight:700, color:'#8F9B88', textTransform:'uppercase', letterSpacing:'0.06em' }}>Suggested answer</p>
+                                  <p style={{ margin:0, fontSize:'12.5px', color:'#2E2A25', lineHeight:1.6 }}>{r.suggested_answer}</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <button onClick={() => router.push('/dashboard')} className="btn-h" style={{ width:'100%', padding:'16px', background:'linear-gradient(135deg, #A0AB97, #8F9B88)', backgroundSize:'200% 200%', animation:'gradShift 4s ease infinite', color:'#2E2A25', border:'none', borderRadius:'14px', fontSize:'16px', fontWeight:700, cursor:'pointer', boxShadow:'0 8px 24px rgba(160,171,151,0.3)' }}>
+                Return to Dashboard
+              </button>
+            </div>
+            
+            {/* THE RAG CHATBOT IS RENDERED HERE WHEN RESULTS ARE READY! */}
+            {activeSessionId && <ChatWidget sessionId={activeSessionId} />}
+          </>
         )}
       </div>
     );
   }
 
-  // ── 3. Active interview ──────────────────────────────────────────
   const volBars = Math.min(5, Math.floor(volumeLevel / 16));
 
   return (
@@ -594,7 +578,6 @@ function InterviewRoomInner() {
           <h2 style={{ margin:0, color:'#2E2A25', fontSize:'18px', fontWeight:700 }}>{roundType === 'hr' ? 'HR Interview' : 'Technical Interview'}</h2>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-          {/* Progress dots */}
           <div style={{ display:'flex', gap:'4px' }}>
             {aiQuestions.map((_, i) => (
               <div key={i} style={{ width:i === currentQuestionIndex ? '20px' : '6px', height:'6px', borderRadius:'99px', background:i < currentQuestionIndex ? '#A0AB97' : i === currentQuestionIndex ? '#8F9B88' : '#D8C7B3', transition:'all 0.3s cubic-bezier(0.22,1,0.36,1)' }} />
@@ -604,7 +587,6 @@ function InterviewRoomInner() {
             {currentQuestionIndex + 1} of {aiQuestions.length}
           </div>
 
-          {/* ── Mute / unmute button ── */}
           <button onClick={toggleMute} className="mute-btn"
             style={{ color: muted ? '#6F6A63' : '#8F9B88', borderColor: muted ? '#D8C7B3' : 'rgba(160,171,151,0.4)' }}
             title={muted ? 'Unmute AI voice' : 'Mute AI voice'}>
@@ -628,12 +610,10 @@ function InterviewRoomInner() {
 
       <div style={{ display:'flex', gap:'36px', maxWidth:'1200px', margin:'0 auto', flexWrap:'wrap', position:'relative', zIndex:1 }}>
 
-        {/* Left: question + controls */}
         <div style={{ flex:1, minWidth:'320px', display:'flex', flexDirection:'column', justifyContent:'center', animation:'fadeLeft 0.5s 0.1s ease both' }}>
           <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px' }}>
             <h3 style={{ color:'#8F9B88', textTransform:'uppercase', letterSpacing:'1.5px', fontSize:'12px', fontWeight:700, margin:0 }}>Current AI Question</h3>
 
-            {/* Speaking indicator */}
             {isSpeakingQuestion && !muted && (
               <div style={{ display:'flex', alignItems:'flex-end', gap:'2px', height:'14px' }}>
                 {[0,1,2,3].map(i => (
@@ -642,7 +622,6 @@ function InterviewRoomInner() {
               </div>
             )}
 
-            {/* Replay button */}
             {!isSpeakingQuestion && !muted && (
               <button className="replay-btn" onClick={() => speakQuestion(aiQuestions[currentQuestionIndex])} title="Replay question">
                 ↺ Replay
@@ -695,7 +674,6 @@ function InterviewRoomInner() {
           </div>
         </div>
 
-        {/* Right: camera */}
         <div style={{ flex:1, minWidth:'320px', animation:'fadeRight 0.5s 0.2s ease both' }}>
           <div style={{
             background:'#2E2A25', borderRadius:'20px', overflow:'hidden', position:'relative',
@@ -719,7 +697,6 @@ function InterviewRoomInner() {
                 <span style={{ fontSize:'11px', fontWeight:700, color:'#A0AB97' }}>REC</span>
               </div>
             )}
-            {/* Speaking indicator on camera */}
             {isSpeakingQuestion && !muted && !isRecording && (
               <div style={{ position:'absolute', top:'14px', right:'14px', display:'flex', alignItems:'center', gap:'6px', background:'rgba(0,0,0,0.65)', padding:'5px 10px', borderRadius:'99px', backdropFilter:'blur(4px)', zIndex:2 }}>
                 <div style={{ display:'flex', alignItems:'flex-end', gap:'2px', height:'12px' }}>
@@ -734,20 +711,6 @@ function InterviewRoomInner() {
           </div>
         </div>
       </div>
-
-    {/* --- AI LOADING OVERLAY --- */}
-      {isAnalyzing && (
-        <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
-          <div className="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-blue-500 mb-6"></div>
-          <h2 className="text-3xl font-bold text-white mb-3 animate-pulse">
-            Analyzing Your Interview...
-          </h2>
-          <p className="text-gray-300 text-lg">
-            Gemini is evaluating your eye contact, posture, and speech clarity.
-          </p>
-        </div>
-      )}
-
     </div>
   );
 }
