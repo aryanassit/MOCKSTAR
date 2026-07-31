@@ -4,7 +4,7 @@
 
 ### The interview practice you can't talk your way around.
 
-**Upload a resume → get 8 questions built *from that resume* → answer on camera → get graded on what you said *and* how you said it.**
+**Upload a resume → get 8 questions built *from that resume* → answer on camera → get graded on what you said *and* how you said it → debrief with an AI Coach.**
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)
@@ -12,6 +12,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.137-009688?style=flat-square&logo=fastapi)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python)
 ![Supabase](https://img.shields.io/badge/Supabase-Auth%20%2B%20DB%20%2B%20Storage-3ECF8E?style=flat-square&logo=supabase)
+![pgvector](https://img.shields.io/badge/pgvector-Vector%20Search-336791?style=flat-square&logo=postgresql)
 ![Gemini](https://img.shields.io/badge/Gemini-Flash-4285F4?style=flat-square&logo=google)
 ![OpenCV](https://img.shields.io/badge/OpenCV-Vision-5C3EE8?style=flat-square&logo=opencv)
 ![MediaPipe](https://img.shields.io/badge/MediaPipe-Fallback%20Engine-00B894?style=flat-square)
@@ -49,9 +50,11 @@
 
 Most "AI interview prep" tools ask you generic questions off a template. **MOCKSTAR reads your actual résumé** and generates interview questions specific to *your* projects, *your* stack, and *your* experience — then it puts you in front of a camera and grades you the way a real bar-raiser would: on the substance of what you said, whether you looked at the camera, and whether you sat like someone who's confident in the answer.
 
+Once the interview finishes, the platform transitions into a **Retrieval-Augmented Generation (RAG) Coach**. Instead of giving generic advice, it lets you ask questions directly against your specific performance data.
+
 The entire platform is built to run at **₹0 hosting cost** on free tiers (Vercel + Render + Supabase + Gemini's free quota), which forces a very specific architectural pattern:
 
-> **"Fake real-time."** Nothing is analyzed while you're talking. The frontend's only job during the interview is to *feel* like a live conversational interview — record you, know when you've stopped talking, and move to the next question. All the expensive AI/CV work (grading, eye-contact detection, posture analysis) happens **after** you finish, in one concentrated backend burst. This is the difference between an app that needs a GPU cluster and an app that runs on a free-tier server with 512MB of RAM.
+> **"Fake real-time."** Nothing is analyzed while you're talking. The frontend's only job during the interview is to *feel* like a live conversational interview. All the expensive AI/CV work (grading, eye-contact detection, posture analysis) happens **after** you finish, in one concentrated backend burst. This is the difference between an app that needs a GPU cluster and an app that runs on a free-tier server with 512MB of RAM.
 
 ---
 
@@ -61,24 +64,23 @@ The entire platform is built to run at **₹0 hosting cost** on free tiers (Verc
 |---|---|
 | 🔐 **Auth** | Email/password sign-up and login via Supabase Auth, with session persistence and route guarding |
 | 📄 **Resume-aware questions** | Uploads a PDF, extracts real text (`PyPDF2`), and asks Gemini to write **8 unique, non-generic questions** grounded in that specific resume |
-| 🎯 **Two interview modes** | `technical` round (architecture/debugging/scaling questions tied to the candidate's actual projects) or `hr` round (behavioral/scenario-based questions) — selectable before the session starts |
-| 🗣️ **Text-to-Speech questions** | The browser's native `SpeechSynthesis` API reads each question aloud in a natural voice, so the session feels like a real conversation, not a quiz form |
-| 🎙️ **Voice Activity Detection (VAD)** | A hand-built Web Audio pipeline listens to the mic and auto-stops recording after ~3 seconds of silence — no "Submit" button, no awkward waiting |
+| 🎯 **Two interview modes** | `technical` round (architecture/debugging/scaling questions tied to the candidate's actual projects) or `hr` round (behavioral/scenario-based questions) |
+| 🗣️ **Text-to-Speech questions** | The browser's native `SpeechSynthesis` API reads each question aloud in a natural voice |
+| 🎙️ **Voice Activity Detection (VAD)** | A hand-built Web Audio pipeline listens to the mic and auto-stops recording after ~3 seconds of silence — no "Submit" button required |
 | 🎥 **Camera + mic capture** | `MediaRecorder` records each answer as a `.webm` clip directly in the browser |
-| 🧠 **LLM speech grading** | Gemini watches the **actual video** of the final answer (not just a transcript) and grades content quality against a strict rubric, plus writes a model answer for comparison |
-| 👁️ **Computer vision grading** | A dual-engine CV pipeline (MediaPipe with automatic OpenCV fallback) scores eye contact and posture, sampling exactly 1 frame per second to stay light on CPU |
+| 🧠 **LLM speech grading** | Gemini watches the **actual video** of the final answer (not just a transcript) and grades content quality against a strict rubric |
+| 👁️ **Computer vision grading** | A dual-engine CV pipeline (MediaPipe with automatic OpenCV fallback) scores eye contact and posture, sampling exactly 1 frame per second |
 | ⚡ **Concurrent analysis** | Vision scoring and speech scoring run in parallel (`asyncio.gather`) instead of sequentially, cutting grading latency roughly in half |
-| 🛡️ **Self-healing question generation** | If the newest Gemini model is unavailable, the backend automatically walks backward through older model versions; if *all* of them fail, it silently serves 8 hand-written fallback questions so the user never sees a crash |
+| 🤖 **RAG AI Coach** | Post-interview interactive debrief. Queries a `pgvector` database to answer specific user questions strictly grounded in their actual performance data |
+| 🛡️ **Self-healing API calls** | If the newest Gemini model is unavailable, the backend automatically walks backward through older models; gracefully falls back if throttled |
 | 📊 **Results dashboard** | Animated score bars (Speech / Eye Contact / Posture), written feedback, and a suggested model answer per question |
 | 📈 **Progress tracking** | A dashboard growth chart plots `overall_score` across every past session so a candidate can watch themselves actually improve |
-| 🗂️ **Interview history** | Every session is saved and filterable (Strong / Mixed / Weak) with searchable feedback |
-| 👤 **Profile management** | Editable display name, resume re-upload, average score breakdown, and account settings |
 
 ---
 
 ## 🏗️ System Architecture
 
-MOCKSTAR is deliberately split into **two independently deployable services** that only talk to each other over plain HTTP — there is no shared runtime, no shared memory, and no tight coupling. This is what lets the frontend live on Vercel's edge network while the CPU-hungry vision/AI work lives on a completely separate machine.
+MOCKSTAR is deliberately split into **two independently deployable services** that only talk to each other over plain HTTP. 
 
 ```mermaid
 flowchart LR
@@ -87,40 +89,45 @@ flowchart LR
         UI[Next.js UI]
         MR[MediaRecorder]
         VAD[Custom VAD<br/>Web Audio API]
-        TTS[SpeechSynthesis<br/>reads questions aloud]
+        TTS[SpeechSynthesis]
     end
 
     subgraph Vercel["▲ Vercel — ai-mock-interview/"]
-        FE[Next.js 16 + React 19<br/>App Router]
+        FE[Next.js 16 + React 19]
     end
 
     subgraph Supabase["🗄️ Supabase"]
         Auth[(Auth)]
-        DB[(Postgres:<br/>profiles, interview_sessions)]
-        Storage[(Storage:<br/>resumes, video_chunks)]
+        DB[(Postgres:<br/>profiles, sessions)]
+        VectorDB[(pgvector:<br/>embeddings)]
+        Storage[(Storage:<br/>resumes, video)]
     end
 
     subgraph Render["🐍 Render — ai-backend/"]
         API[FastAPI Router]
-        AIS["ai_service.py<br/>Gemini video grading"]
+        AIS["ai_service.py<br/>Video grading"]
         VIS["vision_service.py<br/>Dual-engine CV"]
+        RAG["rag_service.py<br/>Similarity Search"]
     end
 
     subgraph Google["✨ Google AI"]
         Gemini[Gemini Flash API]
+        Embed[Gemini Embeddings]
     end
 
     UI <--> FE
     MR --> VAD
     FE <--> Auth
     FE <--> DB
-    FE -- "upload resume / video clips" --> Storage
-    FE -- "resume_url + round_type" --> API
-    FE -- "video_url + question" --> API
+    FE -- "upload files" --> Storage
+    FE -- "HTTPS POST endpoints" --> API
     API --> AIS
     API --> VIS
+    API --> RAG
     AIS <--> Gemini
-    Storage -. "public URLs consumed by" .-> API
+    RAG <--> Embed
+    RAG <--> VectorDB
+    Storage -. "public URLs" .-> API
 
     style Client fill:#F3E8DA,stroke:#75624E,color:#2E2A25
     style Vercel fill:#EFE3D2,stroke:#75624E,color:#2E2A25
@@ -214,8 +221,6 @@ Gemini is also asked to write a **model answer** (3–5 sentences) for every que
 
 ## 🔬 Under the Hood — Engine Room Deep Dive
 
-This section is the "basement" view — the actual mechanics behind each moving part, worth knowing if you're defending this project in a review or explaining it to a recruiter.
-
 ### 1. The Voice Activity Detection (VAD) Math
 No third-party VAD library is used — it's built directly on the browser's native `AudioContext`:
 1. The raw mic stream is piped into an `AudioContext`, with an `AnalyserNode` attached.
@@ -243,6 +248,12 @@ Asking an LLM to "grade an interview" naively returns a conversational essay, wh
 
 ### 8. Rate-Limit Safe Sequential Processing
 Firing 8 concurrent video grading requests to Gemini instantly triggers a `429 Too Many Requests` error on the free tier. To solve this, the frontend sequentially loops through the videos (`Promise.all` is intentionally avoided) and injects a 1500ms delay between API calls. This keeps the traffic steady, completely bypasses the RPM throttle, and updates the UI progress state smoothly ("1 of 8 analyzed...").
+
+### 9. RAG Pipeline & Dimension Mismatches
+When a user chats with the AI Coach, the backend uses a Retrieval-Augmented Generation (RAG) pipeline. It converts the user's question into a mathematical vector and queries Supabase's pgvector extension for cosine similarity. Because Google's newer embedding models (text-embedding-004) are sometimes blocked by free-tier API quotas, the system dynamically falls back to gemini-embedding-001. The database schema is explicitly set to VECTOR(3072) to safely store the larger dimensional footprint of the fallback model.
+
+### 10. Strict RAG Guardrails
+To prevent the chatbot from hallucinating or answering out-of-scope questions (e.g., "Give me a recipe for a cake"), the LLM is strictly prompted to use only the retrieved semantic context from the vector database. If a user tries to chat before completing an interview, the backend automatically intercepts it because the vector database returns an empty set.
 
 ---
 
@@ -274,7 +285,7 @@ Firing 8 concurrent video grading requests to Gemini instantly triggers a `429 T
 | Tool | Role |
 |---|---|
 | **Supabase Auth** | Email/password authentication, session management |
-| **Supabase Postgres** | `profiles` and `interview_sessions` tables |
+| **Supabase Postgres** | `profiles` , `interview_sessions` tables and `pgvector` extension |
 | **Supabase Storage** | `resumes` bucket (PDFs) and `video_chunks` bucket (answer recordings) |
 
 ### Hosting — the ₹0 stack
@@ -303,7 +314,8 @@ MOCKSTAR/
 │   │   │   ├── history/page.tsx       ← Filterable past-session archive
 │   │   │   └── profile/page.tsx       ← Account settings, average score breakdown
 │   │   ├── components/
-│   │   │   ├── Sidebar.tsx            ← Persistent nav (Dashboard / History / Profile)
+│   │   │   ├── ChatWidget.tsx
+│   │   │   └── Sidebar.tsx            ← Persistent nav (Dashboard / History / Profile)
 │   │   │   └── Logo.tsx               ← MockStar SVG mark
 │   │   └── layout.tsx                 ← Root layout
 │   ├── lib/
@@ -316,6 +328,7 @@ MOCKSTAR/
     │   └── interview.py                ← /generate-questions, /analyze-video
     ├── services/
     │   ├── ai_service.py               ← Gemini video-grading logic + strict rubric prompt
+    │   ├── rag_service.py             ← Vector embeddings & pgvector similarity search
     │   └── vision_service.py           ← Dual-engine (MediaPipe/OpenCV) CV pipeline
     ├── models/
     │   └── schemas.py                  ← Pydantic request models
@@ -347,17 +360,22 @@ erDiagram
         jsonb questions "per-question text + score"
         timestamp created_at
     }
+    interview_embeddings {
+        bigint id PK
+        uuid session_id FK
+        text content
+        vector embedding "VECTOR(3072)"
+    }
 ```
 
 - **`profiles`** — one row per authenticated user; holds the resume URL so it doesn't need to be re-uploaded every session.
 - **`interview_sessions`** — one row per completed interview; powers the History page, the Profile average-score breakdown, and the Dashboard growth chart.
 - **Storage buckets** — `resumes` (uploaded PDFs) and `video_chunks` (recorded answer clips), both referenced by public URL rather than passed as raw bytes between services.
+- `interview_embeddings` stores chunked feedback and its mathematical vector representation, powering the RAG chatbot via a custom match_documents SQL function.
 
 ---
 
 ## 🔌 API Reference
-
-Base URL: your Render deployment (e.g. `https://mockstar-3.onrender.com`)
 
 ### `POST /generate-questions`
 Generates 8 tailored interview questions from a candidate's resume.
@@ -405,6 +423,21 @@ Grades a single answer clip on content, eye contact, and posture.
 
 ### `GET /` and `GET /health`
 Root and health-check endpoints — the latter is intended for a free-tier keep-alive cron job, since Render's free web services sleep after inactivity.
+
+### POST /save-embedding
+Converts string feedback into a 3072-dimension vector and saves to Supabase.
+```json
+{ "session_id": "uuid-here", "feedback_text": "..." }
+```
+
+### POST /chat
+RAG endpoint. Semantically searches the vector database and answers the user's question using Gemini.
+```json
+// Request
+{ "session_id": "uuid-here", "message": "How do I fix my posture?" }
+// Response
+{ "reply": "Based on your session, your posture score dropped because..." }
+```
 
 ---
 
@@ -505,6 +538,8 @@ Real problems hit while building and deploying this exact project — worth chec
 | `Failed to fetch` on login/signup | `.env.local` has the browser dashboard URL instead of the actual `.co` API endpoint | Use the Project URL from Supabase → Settings → API, not the dashboard link |
 | Resume upload succeeds but DB write fails | Storage Row Level Security blocks the insert | Add SQL policy: `bucket_id = 'resumes' AND auth.role() = 'authenticated'` |
 | 500 error on first resume upload | `full_name` column has a `NOT NULL` constraint the frontend never populates | Alter the column to be nullable |
+|Supabase 400 Bad Request on Embedding | Vector dimension mismatch | Drop the table and ensure it is created with VECTOR(3072) for the fallback embedding model |
+| RAG Chatbot freezes (no reply) | Blocking network call inside an async def FastAPI route | Remove async from def chat_with_bot() to run in a background thread |
 
 ---
 
